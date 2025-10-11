@@ -1,0 +1,20 @@
+# Build/Generated files
+/build/
+.gradle/
+/local.properties
+/captures/
+.kotlin/  # 忽略 Kotlin 缓存
+.cxx
+
+# IDE files
+# .idea/ 中的绝大部分内容
+.idea/caches/
+.idea/libraries/
+.idea/workspace.xml
+.idea/misc.xml  # 这一项有时会提交，但通常更推荐忽略
+.idea/shelf/
+.idea/dictionaries/
+
+# Android-specific files
+*.apk
+*.aab
