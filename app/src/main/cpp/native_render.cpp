@@ -38,6 +38,8 @@ void main() {
 
 // ---------------------- 辅助函数 (编译/链接) ----------------------
 
+
+
 GLuint NativeRenderer::compileShader(GLenum type, const std::string& source) {
     GLuint shader = glCreateShader(type);
     const char* src = source.c_str();
@@ -227,6 +229,36 @@ void NativeRenderer::render() {
     eglSwapBuffers(m_display, m_surface);
 }
 
+void NativeRenderer::nativeRenderSecondary() {
+    // 1. 切换到副屏的上下文
+    if (eglMakeCurrent(m_display, m_surface[1].surface, m_surface[1].surface, m_context /* 或 sharedContext */) == EGL_FALSE) {
+        // 如果这里失败，需要处理错误
+        return;
+    }
+
+    // 2. 执行渲染：
+    // 使用主屏已链接的程序 ID
+    glUseProgram(m_program);
+
+    // 设置视口 (使用 secondaryState.width 和 height)
+    glViewport(0, 0, m_surface[1].width, m_surface[1].height);
+
+    // 清除副屏颜色 (可以与主屏不同)
+    glClearColor(0.0f, 0.0f, 1.0f, 1.0f); // 例如，蓝色
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    // 绘制三角形
+    glBindVertexArray(m_vao);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glBindVertexArray(0);
+
+    // 3. 交换缓冲区
+    eglSwapBuffers(m_display, m_surface[1].surface);
+
+    // 4. 【重要】渲染完成后解绑上下文
+    eglMakeCurrent(m_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+}
+
 void NativeRenderer::destroy() {
     if (m_display != EGL_NO_DISPLAY) {
         eglMakeCurrent(m_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
@@ -257,36 +289,50 @@ void NativeRenderer::destroy() {
 // 全局渲染器指针
 static NativeRenderer* g_renderer = nullptr;
 
-extern "C" JNIEXPORT void JNICALL
-Java_com_example_myappTest_MainActivity_nativeInit(JNIEnv* env, jobject /* this */, jobject surface) {
-if (g_renderer) return;
-//pthread_self() 获取线程ID
-LOGI("%s: Thread ID: %lu", "init",(long unsigned int)pthread_self()); //
-ANativeWindow* window = ANativeWindow_fromSurface(env, surface);
-g_renderer = new NativeRenderer();
+extern "C" JNIEXPORT jlong JNICALL
+Java_com_example_myappTest_NativeRenderer_nativeInit(JNIEnv* env, jclass /* clazz */, jobject surface) {
+    if (g_renderer) return (jlong)g_renderer;
+    //pthread_self() 获取线程ID
+    LOGI("%s: Thread ID: %lu", "init",(long unsigned int)pthread_self()); //
+    ANativeWindow* window = ANativeWindow_fromSurface(env, surface);
+    g_renderer = new NativeRenderer();
 
-if (!g_renderer->init(window)) {
-LOGE("NativeRenderer init failed!");
-delete g_renderer;
-g_renderer = nullptr;
-}
-}
-
-extern "C" JNIEXPORT void JNICALL
-Java_com_example_myappTest_MainActivity_nativeRender(JNIEnv* env, jobject /* this */) {
-LOGI("%s: Thread ID: %lu", "render",(long unsigned int)pthread_self()); //
-if (g_renderer) {
-g_renderer->render();
-} else {
-LOGE("nativeRender called with no renderer initialized!");
-}
+    if (!g_renderer->init(window)) {
+        LOGE("NativeRenderer init failed!");
+        delete g_renderer;
+        g_renderer = nullptr;
+    }
+    return (jlong)g_renderer;
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_example_myappTest_MainActivity_nativeDestroy(JNIEnv* env, jobject /* this */) {
+Java_com_example_myappTest_NativeRenderer_nativeRender(JNIEnv* env, jclass /* clazz */,jlong primaryHandle) {
+    LOGI("%s: Thread ID: %lu", "render",(long unsigned int)pthread_self()); //
+    if (g_renderer) {
+        g_renderer->render();
+    } else {
+        LOGE("nativeRender called with no renderer initialized!");
+    }
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_example_myappTest_NativeRenderer_nativeDestroy(JNIEnv* env, jclass /* clazz */) {
 if (g_renderer) {
 g_renderer->destroy();
 delete g_renderer;
 g_renderer = nullptr;
 }
+}
+static JavaVM* g_javaVM;
+// 副屏初始化也一样
+extern "C" JNIEXPORT jlong JNICALL
+Java_com_example_myappTest_NativeRenderer_nativeInitSecondary(JNIEnv* env, jclass clazz, jlong handle, jobject surface) {
+    // 1. 转换句柄
+
+    NativeRenderer* renderer = g_renderer;
+    if (renderer) {
+        // 2. 调用副屏初始化，返回副屏的 EGLSurface 句柄（如果需要）
+        return (jlong)renderer;
+    }
+    return 0;
 }

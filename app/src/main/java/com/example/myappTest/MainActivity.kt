@@ -1,6 +1,9 @@
 package com.example.myappTest
 
+import android.content.Context
+import android.hardware.display.DisplayManager
 import android.os.Bundle
+import android.util.Log
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.view.View
@@ -51,6 +54,21 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
     private external fun nativeRender()
     private external fun nativeDestroy()
 
+    //private var secondaryDisplayPresentation:NaviteRenderer
+
+//    private fun checkForSecondaryDisplay() {
+//        val displayManager = getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
+//        val displays = displayManager.getDisplays(DisplayManager.DISPLAY_CATEGORY_PRESENTATION)
+//
+//        if (displays.isNotEmpty() && secondaryDisplayPresentation == null && primaryRenderer != null) {
+//            val secondaryDisplay = displays.last()
+//
+//            // 【关键】将主渲染器实例传入 MyPresentation 的构造函数
+//            secondaryDisplayPresentation = MyPresentation(this, secondaryDisplay, primaryRenderer!!)
+//            secondaryDisplayPresentation?.show()
+//        }
+//    }
+
     companion object {
         init {
             // 加载你的 JNI 库
@@ -66,7 +84,10 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
 
 
         surfaceView = findViewById(R.id.surfaceView)
+        Log.d("time", "1")
         surfaceView.holder.addCallback(this)
+        Log.d("time", "2")
+
     }
 
     // --- SurfaceHolder.Callback 实现 ---

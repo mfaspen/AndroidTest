@@ -9,7 +9,11 @@
 #include <EGL/egl.h>
 #include <GLES3/gl3.h>
 #include <string>
-
+struct SurfaceParam{
+    EGLSurface surface;
+    int width;
+    int height;
+};
 class NativeRenderer {
 public:
     NativeRenderer();
@@ -21,13 +25,14 @@ public:
     // 2. 渲染一帧
     void render();
 
+    void nativeRenderSecondary();
     // 3. 销毁 EGL 环境和 GL 资源
     void destroy();
 
 private:
     ANativeWindow* m_window = nullptr;
     EGLDisplay m_display = EGL_NO_DISPLAY;
-    EGLSurface m_surface = EGL_NO_SURFACE;
+    SurfaceParam m_surface[2];
     EGLContext m_context = EGL_NO_CONTEXT;
 
     // GL 资源
