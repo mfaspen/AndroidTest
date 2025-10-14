@@ -7,9 +7,9 @@ import android.view.Display
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 
-class MyPresentation (outerContext: Context, display: Display,private val primaryRenderer:NativeRenderer): Presentation(outerContext,display){
+class MyPresentation (outerContext: Context, display: Display): Presentation(outerContext,display){
 
-
+    private var secondHandle = NativeRenderer()
 
     override fun onCreate(savedInstanceState: Bundle?){
         super.onCreate(savedInstanceState)
@@ -19,6 +19,7 @@ class MyPresentation (outerContext: Context, display: Display,private val primar
 
         surfaceView.holder.addCallback(object : SurfaceHolder.Callback{
             override fun surfaceCreated(holder: SurfaceHolder){
+                secondHandle.secondRender(holder.surface)
             }
             override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int){
 

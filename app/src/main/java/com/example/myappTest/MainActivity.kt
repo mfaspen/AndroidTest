@@ -4,11 +4,13 @@ import android.content.Context
 import android.hardware.display.DisplayManager
 import android.os.Bundle
 import android.util.Log
+import android.view.Display
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.view.View
 import android.view.Window
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.getSystemService
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -42,17 +44,17 @@ fun hideStatusBar(window: Window, view: View) {
     controller.hide(WindowInsetsCompat.Type.systemBars()) // statusBars() | navigationBars()
 
 }
-class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
+
+class MainActivity : AppCompatActivity(){
 
     // 假设你的布局文件包含一个 id 为 'surfaceView' 的 SurfaceView
+    private lateinit var myPresentation : MyPresentation
     private lateinit var surfaceView: SurfaceView
     private var isRendering = false
     private var renderThread: Thread? = null
+    private var primaryHandle = NativeRenderer()
 
-    // 声明 JNI 方法
-    private external fun nativeInit(surface: Any)
-    private external fun nativeRender()
-    private external fun nativeDestroy()
+
 
     //private var secondaryDisplayPresentation:NaviteRenderer
 
@@ -84,45 +86,45 @@ class MainActivity : AppCompatActivity(), SurfaceHolder.Callback {
 
 
         surfaceView = findViewById(R.id.surfaceView)
-        Log.d("time", "1")
-        surfaceView.holder.addCallback(this)
-        Log.d("time", "2")
+        surfaceView.holder.addCallback(object :SurfaceHolder.Callback {
+            // --- SurfaceHolder.Callback 实现 ---
 
-    }
-
-    // --- SurfaceHolder.Callback 实现 ---
-
-    override fun surfaceCreated(holder: SurfaceHolder) {
-        renderThread = thread {
-            // 1. Surface 创建后，调用 C++ 初始化 EGL
-            nativeInit(holder.surface)
-
-            // 2. 启动渲染线程
-            isRendering = true
-            while (isRendering) {
-                nativeRender() // 在循环中持续调用渲染函数
-                // 控制帧率，例如 60 FPS
-                Thread.sleep(16)
+            override fun surfaceCreated(holder: SurfaceHolder) {
+                primaryHandle.primaryRender(holder.surface)
             }
-            nativeDestroy() // 线程结束后销毁 EGL
+
+            override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+                // 可以在这里处理窗口大小变化，但在这个例子中，C++ render() 会查询新的大小
+            }
+
+            override fun surfaceDestroyed(holder: SurfaceHolder) {
+            }
+
+
+        })
+        // 1. 获取 Context 对象 (在 Activity 中，可以直接用 'this' 或 'applicationContext')
+        //val context: Context = this
+
+        // 2. 获取 Display 对象 (需要通过 DisplayManager)
+//        val displayManager = getSystemService<DisplayManager>()
+//
+//        val defaultDisplay: Display = displayManager?.getDisplay(android.view.Display.DEFAULT_DISPLAY)
+//            ?: throw IllegalStateException("Cannot get default display")
+
+
+        val displayManager = getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
+        if(displayManager.displays.count()>1){
+
+            val displays = displayManager.displays[1]
+
+            myPresentation = MyPresentation(applicationContext,displays)
+//
+            myPresentation.show()
         }
+
+
     }
 
-    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
-        // 可以在这里处理窗口大小变化，但在这个例子中，C++ render() 会查询新的大小
-    }
-
-    override fun surfaceDestroyed(holder: SurfaceHolder) {
-        // Surface 销毁时，停止渲染线程
-        isRendering = false
-        try {
-            // 等待渲染线程结束，让 nativeDestroy 有机会被调用
-            renderThread?.join()
-        } catch (e: InterruptedException) {
-            Thread.currentThread().interrupt()
-        }
-        renderThread = null
-    }
 
     override fun onPause() {
         super.onPause()

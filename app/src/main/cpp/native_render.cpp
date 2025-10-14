@@ -4,6 +4,7 @@
 #include <android/native_window.h>
 #include <android/log.h>
 #include <cmath>
+#include <unistd.h>
 
 #define TAG "NativeRenderer"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, TAG, __VA_ARGS__)
@@ -37,7 +38,7 @@ void main() {
 )V0G0N";
 
 // ---------------------- 辅助函数 (编译/链接) ----------------------
-
+EGLDisplay NativeRenderer::m_display =  EGL_NO_DISPLAY;
 
 
 GLuint NativeRenderer::compileShader(GLenum type, const std::string& source) {
@@ -80,11 +81,13 @@ GLuint NativeRenderer::linkProgram(GLuint vertexShader, GLuint fragmentShader) {
 // ---------------------- EGL 初始化 ----------------------
 
 bool NativeRenderer::setupEGL(EGLConfig* config) {
-    // 1. 获取 Display
-    m_display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-    if (m_display == EGL_NO_DISPLAY) {
-        LOGE("eglGetDisplay failed: %x", eglGetError());
-        return false;
+    if(m_display == EGL_NO_DISPLAY){
+        // 1. 获取 Display
+        m_display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+        if (m_display == EGL_NO_DISPLAY) {
+            LOGE("eglGetDisplay failed: %x", eglGetError());
+            return false;
+        }
     }
 
     // 2. 初始化 EGL
@@ -97,13 +100,15 @@ bool NativeRenderer::setupEGL(EGLConfig* config) {
 
     // 3. 配置 EGL 属性 (请求 ES 3.0)
     EGLint attribs[] = {
-            EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT, // 关键：请求 ES 3.0
+            EGL_RENDERABLE_TYPE,
+            EGL_OPENGL_ES3_BIT, // 关键：请求 ES 3.0
             EGL_BLUE_SIZE, 8,
             EGL_GREEN_SIZE, 8,
             EGL_RED_SIZE, 8,
             EGL_DEPTH_SIZE, 16,
             EGL_NONE
     };
+
 
     EGLint numConfigs;
     if (eglChooseConfig(m_display, attribs, config, 1, &numConfigs) == EGL_FALSE || numConfigs == 0) {
@@ -160,7 +165,7 @@ bool NativeRenderer::setupGL() {
 
 // ---------------------- 公共接口实现 ----------------------
 
-bool NativeRenderer::init(ANativeWindow* window) {
+bool NativeRenderer::primaryInit(ANativeWindow* window) {
     m_window = window;
     if (!m_window) {
         LOGE("ANativeWindow is NULL.");
@@ -172,9 +177,73 @@ bool NativeRenderer::init(ANativeWindow* window) {
         LOGE("EGL setup failed.");
         return false;
     }
+    EGLint surfaceAttribs[] = {
+            EGL_RENDER_BUFFER,
+            EGL_SINGLE_BUFFER,
+            EGL_NONE // 必须以 EGL_NONE 结束
+    };
 
     // 4. 创建 EGL Surface
-    m_surface = eglCreateWindowSurface(m_display, config, m_window, nullptr);
+    m_surface = eglCreateWindowSurface(m_display, config, m_window, surfaceAttribs);
+    if (m_surface == EGL_NO_SURFACE) {
+        LOGE("eglCreateWindowSurface failed: %x", eglGetError());
+        return false;
+    }
+
+    //if(m_context == EGL_NO_CONTEXT){
+        // 5. 创建 EGL Context (请求 ES 3.0)
+        EGLint ctxAttribs[] = {EGL_CONTEXT_CLIENT_VERSION, 3, EGL_NONE};
+        m_context = eglCreateContext(m_display, config, EGL_NO_CONTEXT, ctxAttribs);
+        if (m_context == EGL_NO_CONTEXT) {
+            LOGE("eglCreateContext failed: %x", eglGetError());
+            return false;
+        }
+    //}
+
+    // 6. 绑定上下文
+    if (eglMakeCurrent(m_display, m_surface, m_surface, m_context) == EGL_FALSE) {
+        LOGE("eglMakeCurrent failed: %x", eglGetError());
+        return false;
+    }
+
+
+    // 获取视口大小
+    EGLint width, height;
+    eglQuerySurface(m_display, m_surface, EGL_WIDTH, &width);
+    eglQuerySurface(m_display, m_surface, EGL_HEIGHT, &height);
+    m_width = width;
+    m_height = height;
+    LOGI("EGL context made current successfully!");
+
+    // 7. 设置 GL 资源
+    setupGL();
+    while(true){
+        secRender();
+        usleep(16000);
+    }
+    destroy();
+    return true;
+}
+bool NativeRenderer::secondInit(ANativeWindow* window) {
+    m_window = window;
+    if (!m_window) {
+        LOGE("ANativeWindow is NULL.");
+        return false;
+    }
+
+    EGLConfig config;
+    if (!setupEGL(&config)) {
+        LOGE("EGL setup failed.");
+        return false;
+    }
+    EGLint surfaceAttribs[] = {
+            EGL_RENDER_BUFFER,
+            EGL_SINGLE_BUFFER,
+            EGL_NONE // 必须以 EGL_NONE 结束
+    };
+
+    // 4. 创建 EGL Surface
+    m_surface = eglCreateWindowSurface(m_display, config, m_window, surfaceAttribs);
     if (m_surface == EGL_NO_SURFACE) {
         LOGE("eglCreateWindowSurface failed: %x", eglGetError());
         return false;
@@ -193,10 +262,24 @@ bool NativeRenderer::init(ANativeWindow* window) {
         LOGE("eglMakeCurrent failed: %x", eglGetError());
         return false;
     }
+
+
+    // 获取视口大小
+    EGLint width, height;
+    eglQuerySurface(m_display, m_surface, EGL_WIDTH, &width);
+    eglQuerySurface(m_display, m_surface, EGL_HEIGHT, &height);
+    m_width = width;
+    m_height = height;
     LOGI("EGL context made current successfully!");
 
     // 7. 设置 GL 资源
-    return setupGL();
+    setupGL();
+    while(true){
+        render();
+        usleep(16000);
+    }
+    destroy();
+    return true;
 }
 
 void NativeRenderer::render() {
@@ -205,13 +288,9 @@ void NativeRenderer::render() {
         return;
     }
 
-    // 获取视口大小
-    EGLint width, height;
-    eglQuerySurface(m_display, m_surface, EGL_WIDTH, &width);
-    eglQuerySurface(m_display, m_surface, EGL_HEIGHT, &height);
 
     // 设置视口
-    glViewport(0, 0, width, height);
+    glViewport(0, 0, m_width, m_height);
 
     // 清除屏幕
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f); // 灰蓝色背景
@@ -226,38 +305,36 @@ void NativeRenderer::render() {
     glBindVertexArray(0);
 
     // 交换缓冲区，显示到屏幕
-    eglSwapBuffers(m_display, m_surface);
+    //eglSwapBuffers(m_display, m_surface[0].surface);
+    glFlush();
 }
-
-void NativeRenderer::nativeRenderSecondary() {
-    // 1. 切换到副屏的上下文
-    if (eglMakeCurrent(m_display, m_surface[1].surface, m_surface[1].surface, m_context /* 或 sharedContext */) == EGL_FALSE) {
-        // 如果这里失败，需要处理错误
+void NativeRenderer::secRender() {
+    if (m_display == EGL_NO_DISPLAY || m_context == EGL_NO_CONTEXT) {
+        LOGE("call to OpenGL ES API with no current context or display!");
         return;
     }
 
-    // 2. 执行渲染：
-    // 使用主屏已链接的程序 ID
-    glUseProgram(m_program);
 
-    // 设置视口 (使用 secondaryState.width 和 height)
-    glViewport(0, 0, m_surface[1].width, m_surface[1].height);
+    // 设置视口
+    glViewport(0, 0, m_width, m_height);
 
-    // 清除副屏颜色 (可以与主屏不同)
-    glClearColor(0.0f, 0.0f, 1.0f, 1.0f); // 例如，蓝色
+    // 清除屏幕
+    glClearColor(0.2f, 1.3f, 0.3f, 1.0f); // 灰蓝色背景
     glClear(GL_COLOR_BUFFER_BIT);
 
-    // 绘制三角形
+    // 使用着色器程序
+    glUseProgram(m_program);
+
+    // 绑定 VAO 并绘制
     glBindVertexArray(m_vao);
     glDrawArrays(GL_TRIANGLES, 0, 3);
     glBindVertexArray(0);
 
-    // 3. 交换缓冲区
-    eglSwapBuffers(m_display, m_surface[1].surface);
-
-    // 4. 【重要】渲染完成后解绑上下文
-    eglMakeCurrent(m_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+    // 交换缓冲区，显示到屏幕
+    //eglSwapBuffers(m_display, m_surface[0].surface);
+    glFlush();
 }
+
 
 void NativeRenderer::destroy() {
     if (m_display != EGL_NO_DISPLAY) {
@@ -287,52 +364,34 @@ void NativeRenderer::destroy() {
 // ---------------------- JNI 接口 ----------------------
 
 // 全局渲染器指针
-static NativeRenderer* g_renderer = nullptr;
+static NativeRenderer* primary_renderer = nullptr;
+static NativeRenderer* second_renderer = nullptr;
 
 extern "C" JNIEXPORT jlong JNICALL
-Java_com_example_myappTest_NativeRenderer_nativeInit(JNIEnv* env, jclass /* clazz */, jobject surface) {
-    if (g_renderer) return (jlong)g_renderer;
+Java_com_example_myappTest_NativeRenderer_primaryInitialization(JNIEnv* env, jclass /* clazz */, jobject surface) {
+
+    LOGI("%s: Thread ID: %lu", "init",(long unsigned int)pthread_self()); //
+    ANativeWindow* window = ANativeWindow_fromSurface(env, surface);
+    primary_renderer = new NativeRenderer();
+
+    if (!primary_renderer->primaryInit(window)) {
+        LOGE("NativeRenderer init failed!");
+        delete primary_renderer;
+        primary_renderer = nullptr;
+    }
+}
+
+extern "C" JNIEXPORT jlong JNICALL
+Java_com_example_myappTest_NativeRenderer_secondInitialization(JNIEnv* env, jclass /* clazz */, jobject surface) {
     //pthread_self() 获取线程ID
     LOGI("%s: Thread ID: %lu", "init",(long unsigned int)pthread_self()); //
     ANativeWindow* window = ANativeWindow_fromSurface(env, surface);
-    g_renderer = new NativeRenderer();
+    second_renderer = new NativeRenderer();
 
-    if (!g_renderer->init(window)) {
+    if (!second_renderer->secondInit(window)) {
         LOGE("NativeRenderer init failed!");
-        delete g_renderer;
-        g_renderer = nullptr;
-    }
-    return (jlong)g_renderer;
-}
-
-extern "C" JNIEXPORT void JNICALL
-Java_com_example_myappTest_NativeRenderer_nativeRender(JNIEnv* env, jclass /* clazz */,jlong primaryHandle) {
-    LOGI("%s: Thread ID: %lu", "render",(long unsigned int)pthread_self()); //
-    if (g_renderer) {
-        g_renderer->render();
-    } else {
-        LOGE("nativeRender called with no renderer initialized!");
+        delete second_renderer;
+        second_renderer = nullptr;
     }
 }
 
-extern "C" JNIEXPORT void JNICALL
-Java_com_example_myappTest_NativeRenderer_nativeDestroy(JNIEnv* env, jclass /* clazz */) {
-if (g_renderer) {
-g_renderer->destroy();
-delete g_renderer;
-g_renderer = nullptr;
-}
-}
-static JavaVM* g_javaVM;
-// 副屏初始化也一样
-extern "C" JNIEXPORT jlong JNICALL
-Java_com_example_myappTest_NativeRenderer_nativeInitSecondary(JNIEnv* env, jclass clazz, jlong handle, jobject surface) {
-    // 1. 转换句柄
-
-    NativeRenderer* renderer = g_renderer;
-    if (renderer) {
-        // 2. 调用副屏初始化，返回副屏的 EGLSurface 句柄（如果需要）
-        return (jlong)renderer;
-    }
-    return 0;
-}
