@@ -1,18 +1,18 @@
 plugins {
-    alias(libs.plugins.android.application)
+    id("com.android.library")
+    //alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
 }
-
 android {
     namespace = "com.example.myappTest"
-    compileSdk = 36
+    compileSdk = 33
 
     defaultConfig {
-        applicationId = "com.example.myappTest"
+        //applicationId = "com.example.myappTest"
         minSdk = 29
-        targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        //targetSdk = 33
+        //versionCode = 1
+        //versionName = "1.0"
 
 //        // 这里很关键：告诉Gradle要编译本地C++库
 //        externalNativeBuild {
@@ -59,7 +59,16 @@ android {
     }
 }
 
+configurations.all {
+    resolutionStrategy {
+        force("androidx.activity:activity:1.7.2")
+        force("androidx.activity:activity-ktx:1.7.2")
+    }
+}
 dependencies {
+    compileOnly(files("libs/classes.jar")) // <--- 添加这行
+    implementation("androidx.activity:activity:1.7.2")
+    implementation ("com.google.android.material:material:1.8.0")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)

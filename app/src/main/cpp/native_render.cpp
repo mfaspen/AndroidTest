@@ -101,7 +101,8 @@ bool NativeRenderer::setupEGL(EGLConfig* config) {
     // 3. 配置 EGL 属性 (请求 ES 3.0)
     EGLint attribs[] = {
             EGL_RENDERABLE_TYPE,
-            EGL_OPENGL_ES3_BIT, // 关键：请求 ES 3.0
+            EGL_OPENGL_ES2_BIT, // 关键：请求 ES 3.0
+            EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
             EGL_BLUE_SIZE, 8,
             EGL_GREEN_SIZE, 8,
             EGL_RED_SIZE, 8,
@@ -395,3 +396,10 @@ Java_com_example_myappTest_NativeRenderer_secondInitialization(JNIEnv* env, jcla
     }
 }
 
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_example_myappTest_PluginBridge_nativeSetSecondarySurface(JNIEnv *env, jobject thiz,
+                                                                  jobject surface) {
+    // TODO: implement nativeSetSecondarySurface()
+}
