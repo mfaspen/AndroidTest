@@ -9,8 +9,40 @@
 #define TAG "NativeRenderer"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
+
+#define GL_CALL(x) (x)//do{x;CheckGLError(__FILE__,__LINE__);}while(0)
+
 // 在 native_renderer.cpp 中
 #define LOG_THREAD_ID(msg) LOGI("%s: Thread ID: %lu", msg, (long unsigned int)pthread_self())
+long long get_nano_time(){
+
+    using namespace std::chrono;
+    auto now = system_clock::now();
+    return duration_cast<milliseconds>(now.time_since_epoch()).count();
+}
+
+void CheckGLError(const char* file,int line){
+    GLenum error = glGetError();
+    if(error!= GL_NO_ERROR){
+        switch(error){
+            case GL_INVALID_ENUM:
+                LOGE("GL_ERROR: GL_INVALID_ENUM %s :%d",file,line);
+                break;
+            case GL_INVALID_VALUE:
+                LOGE("GL_ERROR: GL_INVALID_VALUE %s :%d",file,line);
+                break;
+            case GL_INVALID_INDEX:
+                LOGE("GL_ERROR: GL_INVALID_INDEX %s :%d",file,line);
+                break;
+            case GL_OUT_OF_MEMORY:
+                LOGE("GL_ERROR: GL_OUT_OF_MEMORY %s :%d",file,line);
+                break;
+            default:
+                LOGE("GL_ERROR: default 0X%x %s :%d",error,file,line);
+                break;
+        }
+    }
+}
 
 NativeRenderer::NativeRenderer() = default;
 NativeRenderer::~NativeRenderer() {
@@ -137,23 +169,23 @@ bool NativeRenderer::setupGL() {
     };
 
     GLuint VBO;
-    glGenVertexArrays(1, &m_vao); // **需要 ES 3.0**
-    glGenBuffers(1, &VBO);
+    GL_CALL(glGenVertexArrays(1, &m_vao)); // **需要 ES 3.0**
+    GL_CALL(glGenBuffers(1, &VBO));
 
     // 绑定 VAO
-    glBindVertexArray(m_vao);
+    GL_CALL(glBindVertexArray(m_vao));
 
     // 绑定 VBO，并上传数据
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, VBO));
+    GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW));
 
     // 配置顶点属性指针
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
+    GL_CALL(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0));
+    GL_CALL(glEnableVertexAttribArray(0));
 
     // 解绑 VAO (保持 VBO 绑定)
-    glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    GL_CALL(glBindVertexArray(0));
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, 0));
     // 注意：VBO 仍然是 VAO 的一部分，这里为了代码简洁不释放 VBO，
     // 在 destroy() 中统一清理。
 
@@ -288,7 +320,7 @@ void NativeRenderer::render() {
 
 
     // 设置视口
-    glViewport(0, 0, m_width, m_height);
+    GL_CALL(glViewport(0, 0, m_width, m_height));
 
     // 清除屏幕
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f); // 灰蓝色背景
@@ -298,13 +330,15 @@ void NativeRenderer::render() {
     glUseProgram(m_program);
 
     // 绑定 VAO 并绘制
-    glBindVertexArray(m_vao);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-    glBindVertexArray(0);
-
+    GL_CALL(glBindVertexArray(m_vao));
+    GL_CALL(glDrawArrays(GL_TRIANGLES, 0, 3));
+    GL_CALL(glBindVertexArray(0));
+    long long tempTime = get_nano_time();
     // 交换缓冲区，显示到屏幕
     //eglSwapBuffers(m_display, m_surface[0].surface);
-    glFlush();
+    GL_CALL(glFlush());
+    LOGE("FLUSH time-consuming:%lld",get_nano_time() - tempTime );
+
 }
 void NativeRenderer::secRender() {
     if (m_display == EGL_NO_DISPLAY || m_context == EGL_NO_CONTEXT) {
@@ -330,7 +364,11 @@ void NativeRenderer::secRender() {
 
     // 交换缓冲区，显示到屏幕
     //eglSwapBuffers(m_display, m_surface[0].surface);
-    glFlush();
+    //long long tempTime = get_nano_time();
+    // 交换缓冲区，显示到屏幕
+    //eglSwapBuffers(m_display, m_surface[0].surface);
+    GL_CALL(glFlush());
+    //LOGE("FLUSH time-consuming:%lld",get_nano_time() - tempTime );
 }
 
 
