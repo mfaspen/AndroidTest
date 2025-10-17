@@ -77,3 +77,13 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 }
+//afterEvaluate {
+//    tasks.named("assembleRelease").configure {
+//        doLast {
+//            copy {
+//                from("build/outputs/aar/MyPlugin-release.aar")
+//                into("D:/UnityAARs/")  // 👈 你指定的目标路径
+//            }
+//        }
+//    }
+//}

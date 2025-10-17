@@ -3,17 +3,6 @@
 //
 #include "interface.h"
 
-interface::interface(int a , int b ){
-    value = a+b;
-}
-
-interface::~interface(){
-
-}
-
-int interface::get_value() {
-    return value;
-}
 
 
 int test_add(){
