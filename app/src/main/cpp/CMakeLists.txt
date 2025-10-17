@@ -26,8 +26,8 @@ project(myappTest)
 # used in the AndroidManifest.xml file.
 add_library(${PROJECT_NAME} SHARED
         # List C/C++ source files with relative paths to this CMakeLists.txt.
-        native_render.cpp)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+        native_render.cpp math_add1.cpp)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../include/)
 
 find_library( log-lib log )
 find_library( android-lib android )

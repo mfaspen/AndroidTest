@@ -1,4 +1,5 @@
 #include "native_render.h"
+#include "math_add.h"
 #include <jni.h>
 #include <android/native_window_jni.h> // <-- 必须添加这个头文件！
 #include <android/native_window.h>
@@ -36,7 +37,7 @@ void main() {
     FragColor = vec4(1.0, 0.0, 0.0, 1.0);
 }
 )V0G0N";
-
+math_add value(12, 2);
 // ---------------------- 辅助函数 (编译/链接) ----------------------
 EGLDisplay NativeRenderer::m_display =  EGL_NO_DISPLAY;
 
@@ -56,6 +57,8 @@ GLuint NativeRenderer::compileShader(GLenum type, const std::string& source) {
         glDeleteShader(shader);
         return 0;
     }
+    value.get_value();
+    test_add();
     return shader;
 }
 
@@ -361,6 +364,11 @@ void NativeRenderer::destroy() {
     if (m_vao) glDeleteVertexArrays(1, &m_vao);
     LOGI("Renderer destroyed.");
 }
+
+int native_add(){
+    return 10;
+}
+
 
 // ---------------------- JNI 接口 ----------------------
 
