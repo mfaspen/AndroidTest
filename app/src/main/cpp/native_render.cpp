@@ -1,5 +1,13 @@
+#define EXPORT_RENDER
+
+#ifdef EXPORT_RENDER
+#define RENDER_API __declspec(dllexport)
+#else
+#define RENDER_API __declspec(dllimport)
+#endif
+
 #include "native_render.h"
-#include "math_add.h"
+#include "interface.h"
 #include <jni.h>
 #include <android/native_window_jni.h> // <-- 必须添加这个头文件！
 #include <android/native_window.h>
@@ -14,22 +22,21 @@
 #define LOG_THREAD_ID(msg) LOGI("%s: Thread ID: %lu", msg, (long unsigned int)pthread_self())
 
 NativeRenderer::NativeRenderer() = default;
+
 NativeRenderer::~NativeRenderer() {
     destroy();
 }
 
 // ---------------------- GLSL 着色器代码 ----------------------
 
-const char* VERTEX_SHADER_SOURCE = R"V0G0N(
-#version 300 es
+const char* VERTEX_SHADER_SOURCE = R"V0G0N(#version 300 es
 layout (location = 0) in vec3 aPos;
 void main() {
     gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
 }
 )V0G0N";
 
-const char* FRAGMENT_SHADER_SOURCE = R"V0G0N(
-#version 300 es
+const char* FRAGMENT_SHADER_SOURCE = R"V0G0N(#version 300 es
 precision mediump float;
 out vec4 FragColor;
 void main() {
@@ -37,7 +44,7 @@ void main() {
     FragColor = vec4(1.0, 0.0, 0.0, 1.0);
 }
 )V0G0N";
-math_add value(12, 2);
+interface value(12, 2);
 // ---------------------- 辅助函数 (编译/链接) ----------------------
 EGLDisplay NativeRenderer::m_display =  EGL_NO_DISPLAY;
 

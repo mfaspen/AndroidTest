@@ -1,17 +1,17 @@
 //
 // Created by DELL on 2025/10/16.
 //
-#include "math_add.h"
+#include "interface.h"
 
-math_add::math_add(int a , int b ){
+interface::interface(int a , int b ){
     value = a+b;
 }
 
-math_add::~math_add(){
+interface::~interface(){
 
 }
 
-int math_add::get_value() {
+int interface::get_value() {
     return value;
 }
 
