@@ -19,16 +19,14 @@ NativeRenderer::~NativeRenderer() {
 
 // ---------------------- GLSL 着色器代码 ----------------------
 
-const char* VERTEX_SHADER_SOURCE = R"V0G0N(
-#version 300 es
+const char* VERTEX_SHADER_SOURCE = R"V0G0N(#version 300 es
 layout (location = 0) in vec3 aPos;
 void main() {
     gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
 }
 )V0G0N";
 
-const char* FRAGMENT_SHADER_SOURCE = R"V0G0N(
-#version 300 es
+const char* FRAGMENT_SHADER_SOURCE = R"V0G0N(#version 300 es
 precision mediump float;
 out vec4 FragColor;
 void main() {
