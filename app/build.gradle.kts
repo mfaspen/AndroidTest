@@ -4,7 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
 }
 android {
-    namespace = "com.example.myappTest"
+    namespace = "com.example.Application"
     compileSdk = 33
 
     defaultConfig {

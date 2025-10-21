@@ -1,4 +1,4 @@
-package com.example.myappTest
+package com.example.Application
 
 import android.app.Presentation
 import android.content.Context
@@ -18,9 +18,11 @@ class MyPresentation (outerContext: Context, display: Display): Presentation(out
         setContentView(surfaceView)
 
         surfaceView.holder.addCallback(object : SurfaceHolder.Callback{
+
             override fun surfaceCreated(holder: SurfaceHolder){
                 secondHandle.secondRender(holder.surface)
             }
+
             override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int){
 
             }

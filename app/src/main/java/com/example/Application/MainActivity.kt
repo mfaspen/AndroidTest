@@ -1,20 +1,16 @@
-package com.example.myappTest
+package com.example.Application
 
 import android.content.Context
 import android.hardware.display.DisplayManager
 import android.os.Bundle
-import android.util.Log
-import android.view.Display
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.view.View
 import android.view.Window
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.getSystemService
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import kotlin.concurrent.thread
 
 /**
  * 隐藏状态栏并实现沉浸式全屏

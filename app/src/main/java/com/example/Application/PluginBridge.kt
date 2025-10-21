@@ -1,14 +1,12 @@
-package com.example.myappTest
+package com.example.Application
 
 import android.app.Activity
 import android.content.Context
 import android.hardware.display.DisplayManager
-import android.view.Surface
 import android.util.Log
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.widget.FrameLayout
-import androidx.core.content.ContextCompat.getSystemService
 
 object PluginBridge{
     private var activePresentation: MyPresentation? = null
