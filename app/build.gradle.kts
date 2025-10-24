@@ -8,7 +8,7 @@ android {
     compileSdk = 33
 
     defaultConfig {
-        //applicationId = "com.example.myappTest"
+        //applicationId = "com.example.SecondRendering"
         minSdk = 29
         //targetSdk = 33
         //versionCode = 1

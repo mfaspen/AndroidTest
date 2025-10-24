@@ -1,5 +1,8 @@
 package com.example.Application
 
+import android.opengl.EGL14
+import android.opengl.EGLContext
+import android.util.Log
 import android.view.Surface
 import kotlin.concurrent.thread
 
@@ -12,7 +15,7 @@ class NativeRenderer{
 
     companion object {
         init {
-            System.loadLibrary("myappTest") // 名称同 CMake 中生成的库
+            System.loadLibrary("SecondRendering") // 名称同 CMake 中生成的库
         }
 
 
@@ -22,8 +25,29 @@ class NativeRenderer{
         @JvmStatic
         private external fun secondInitialization(surface: Any): Long
 
+        @JvmStatic
+        private external fun nativePause()
+
+        @JvmStatic
+        private external fun nativeResume()
+
+        @JvmStatic
+        fun getContext() {
+
+            val ctx = EGL14.eglGetCurrentContext()
+            if (ctx == EGL14.EGL_NO_CONTEXT) {
+                Log.e("TAG", "looking 当前线程没有EGLContext绑定")
+            } else {
+                Log.i("TAG", "looking 当前EGLContext有效: $ctx")
+            }
+            Log.i("TAG", "looking EGLContext: $ctx")
+            // 在这里处理来自 C++ 的回调逻辑
+
+
+        }
 
     }
+
 
     /**
      * 初始化主渲染器。
@@ -43,4 +67,11 @@ class NativeRenderer{
         secondRenderThread = null
     }
 
+    fun pauseRendering(){
+        nativePause();
+    }
+
+    fun resumeRendering(){
+        nativeResume();
+    }
 }

@@ -11,11 +11,13 @@
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
 #include <string>
-
-
+#include <thread>
+#include <chrono>
 #include <unistd.h>
 #include <EGL/egl.h>
-#include <GLES3/gl3.h>
+#include <EGL/eglext.h>   // 👈 关键！定义了 EGLImageKHR 和相关函数原型
+#include <GLES3/gl32.h>
+#include <GLES3/gl3ext.h>
 
 #define GL_CALL(x) (x)//do{x;CheckGLError(__FILE__,__LINE__);}while(0)
 
@@ -26,23 +28,35 @@ namespace egl{
     bool InitPrimaryRenderer(ANativeWindow* window);
 
     bool InitSecondaryRenderer(ANativeWindow* window);
+
     long long get_nano_time();
 
     void CheckGLError(const char* file,int line);
+
+    void RenderWithUnityTexture();
+
+    void setUnityPointer(int* uPara);
+
 
 
     extern const char* VERTEX_SHADER_SOURCE;
 
     extern const char* FRAGMENT_SHADER_SOURCE;
-
-    extern EGLContext m_context;
-
-
+    extern EGLContext unity_context;
+    extern EGLDisplay unityDisplay;
+    extern EGLConfig unityConfig;
+    extern GLuint texture11;
+    extern int* unityPara;
+    extern int unityImg[3];
+    extern GLuint localTex;
+    extern JNIEnv* kt;
+    extern bool paused;
 
     class GLRenderer {
 
     protected:
-        EGLDisplay m_display;
+        EGLContext m_context;
+        //EGLDisplay unityDisplay;
         ANativeWindow* m_window = nullptr;
         EGLSurface m_surface= EGL_NO_SURFACE;
         int32_t m_width,m_height;

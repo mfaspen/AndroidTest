@@ -26,12 +26,20 @@ object PluginBridge{
     // -----------------------------------------------------------------
     @JvmStatic
     fun startPresentation(activity: Activity){
+
+
+        Log.d("looking","startPresentation")
+        val displayManager = activity.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
         val surfaceView = SurfaceView(activity)
         surfaceView.holder.addCallback(object :SurfaceHolder.Callback {
             // --- SurfaceHolder.Callback 实现 ---
 
             override fun surfaceCreated(holder: SurfaceHolder) {
-                primaryHandle.primaryRender(holder.surface)
+                if(displayManager.displays.count()==1){
+                    primaryHandle.secondRender(holder.surface)
+                }else{
+                    primaryHandle.primaryRender(holder.surface)
+                }
             }
 
             override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
@@ -54,9 +62,6 @@ object PluginBridge{
             )
         }
 
-
-        Log.d("looking","startPresentation")
-        val displayManager = activity.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
         if(displayManager.displays.count()>1){
 
             val displays = displayManager.displays[1]
@@ -66,5 +71,21 @@ object PluginBridge{
             activePresentation?.show()
 
         }
+    }
+
+    @JvmStatic
+    fun onPause() {
+        primaryHandle.pauseRendering()
+    }
+
+    @JvmStatic
+    fun onResume() {
+        primaryHandle.resumeRendering()
+    }
+
+    @JvmStatic
+    fun stopPresentation() {
+        activePresentation?.dismiss()
+        activePresentation = null
     }
 }

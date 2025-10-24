@@ -27,7 +27,6 @@ namespace egl{
 
 
     public:
-
         PrimaryRenderer();
         ~PrimaryRenderer();
 
