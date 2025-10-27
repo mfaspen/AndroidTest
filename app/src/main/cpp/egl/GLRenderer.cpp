@@ -69,10 +69,13 @@ void main() {
     SecondaryRenderer secondaryRenderer;
     EGLContext unity_context = EGL_NO_CONTEXT;
     EGLContext unityDisplay = EGL_NO_DISPLAY;
+    EGLContext shareDisplay = EGL_NO_DISPLAY;
+    EGLContext second_context = EGL_NO_CONTEXT;
     EGLConfig unityConfig = nullptr;
+    EGLSurface unitySurface;
 
     bool InitPrimaryRenderer(ANativeWindow* window){
-        while(unity_context == EGL_NO_CONTEXT){
+        while(unityConfig == nullptr|| second_context == EGL_NO_CONTEXT){
             usleep(50000);
             LOGE("not obtained eglContext");
         }
@@ -80,7 +83,7 @@ void main() {
     }
 
     bool InitSecondaryRenderer(ANativeWindow* window) {
-        while(unity_context == EGL_NO_CONTEXT){
+        while(unityConfig == nullptr ){
             usleep(50000);
             LOGE("not obtained eglContext");
         }
@@ -90,19 +93,19 @@ void main() {
     void getConfig(){
 
         EGLint configID = 0;
-        EGLSurface s = eglGetCurrentSurface(EGL_DRAW);
-        eglQuerySurface(unityDisplay, s, EGL_CONFIG_ID, &configID);
-        //eglQueryContext(unityDisplay, unity_context, EGL_CONFIG_ID, &configID);
+        unitySurface = eglGetCurrentSurface(EGL_DRAW);
+        eglQuerySurface(shareDisplay, unitySurface, EGL_CONFIG_ID, &configID);
+        //eglQueryContext(shareDisplay, unity_context, EGL_CONFIG_ID, &configID);
 
         EGLint numConfigs = 0;
-        eglGetConfigs(unityDisplay, nullptr, 0, &numConfigs);
+        eglGetConfigs(shareDisplay, nullptr, 0, &numConfigs);
 
         std::vector<EGLConfig> configs(numConfigs);
-        eglGetConfigs(unityDisplay, configs.data(), numConfigs, &numConfigs);
+        eglGetConfigs(shareDisplay, configs.data(), numConfigs, &numConfigs);
 
         for (int i = 0; i < numConfigs; ++i) {
             EGLint id;
-            eglGetConfigAttrib(unityDisplay, configs[i], EGL_CONFIG_ID, &id);
+            eglGetConfigAttrib(shareDisplay, configs[i], EGL_CONFIG_ID, &id);
             LOGE("looking id:%d   numConfigs:%d",id,configID);
             if (id == configID) {
                 unityConfig = configs[i];
@@ -123,6 +126,7 @@ void main() {
     static PFNGLEGLIMAGETARGETTEXTURE2DOESPROC glEGLImageTargetTexture2DOES = nullptr;
     typedef EGLBoolean (EGLAPIENTRYP PFNEGLDESTROYIMAGEKHRPROC)(EGLDisplay dpy, EGLImageKHR image);
     static PFNEGLDESTROYIMAGEKHRPROC eglDestroyImageKHRFunc = nullptr;
+
 
     void updateKHR(){
 
@@ -161,7 +165,24 @@ void main() {
         LOGI("Created local texture %u from Unity texture %u", localTex, unityPara[0]);
     }
     void RenderWithUnityTexture(){
-        updateKHR();
+
+//        glBindTexture(GL_TEXTURE_2D, unityPara[0]);
+//        GLint bound = 0; glGetIntegerv(GL_TEXTURE_BINDING_2D, &bound);
+//        __android_log_print(ANDROID_LOG_INFO, "looking", "bound=%d glError=0x%x", bound, glGetError());
+//
+//        // read a small area to check content (slow - debug only)
+//        unsigned char pixels[4];
+//        glReadPixels(0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+//        __android_log_print(ANDROID_LOG_INFO, "looking", "first pixel RGBA=%u,%u,%u,%u", pixels[0], pixels[1], pixels[2], pixels[3]);
+
+        //updateKHR();
+
+
+
+// 已拿到 texId（来自 Unity）
+        //EGLImageKHR eglImage = eglCreateImageKHR(unityDisplay, unity_context, EGL_GL_TEXTURE_2D_KHR, (EGLClientBuffer)(uintptr_t)localTex, nullptr);
+
+
 
         if(unity_context == EGL_NO_CONTEXT){
 
@@ -274,44 +295,84 @@ void main() {
                 EGL_NONE // 必须以 EGL_NONE 结束
         };
 
-        // 4. 创建 EGL Surface
-        m_surface = eglCreateWindowSurface(unityDisplay, unityConfig, m_window, surfaceAttribs);
-
-
-        if (m_surface == EGL_NO_SURFACE) {
-            LOGE("eglCreateWindowSurface failed: %x", eglGetError());
-            return false;
-        }
-
-        //if(m_context == EGL_NO_CONTEXT){
 
         EGLint ctxAttribs[] = {EGL_CONTEXT_CLIENT_VERSION, 3, EGL_NONE};
-        m_context = eglCreateContext(unityDisplay, unityConfig, unity_context, ctxAttribs);
-        if (m_context == EGL_NO_CONTEXT) {
-            LOGE("eglCreateContext failed: %x", eglGetError());
-            return false;
+        if(second_context == EGL_NO_CONTEXT){
+
+            // 4. 创建 EGL Surface
+            m_surface = eglCreateWindowSurface(shareDisplay, config, m_window, surfaceAttribs);
+
+
+            if (m_surface == EGL_NO_SURFACE) {
+                LOGE("eglCreateWindowSurface failed: %x", eglGetError());
+                return false;
+            }
+
+            second_context = eglCreateContext(shareDisplay, config, EGL_NO_CONTEXT, ctxAttribs);
+            if (second_context == EGL_NO_CONTEXT) {
+                LOGE("eglCreateContext failed: %x", eglGetError());
+                return false;
+            }
+            //}
+
+
+            // 6. 绑定上下文
+            if (eglMakeCurrent(shareDisplay, m_surface, m_surface, second_context) == EGL_FALSE) {
+                LOGE("eglMakeCurrent failed: %x", eglGetError());
+                return false;
+            }
+
+
+            // 获取视口大小
+            EGLint width, height;
+            eglQuerySurface(shareDisplay, m_surface, EGL_WIDTH, &width);
+            eglQuerySurface(shareDisplay, m_surface, EGL_HEIGHT, &height);
+            m_width = width;
+            m_height = height;
+            LOGI("EGL context made current successfully!");
+
+            CreateTexture11();
+            // 7. 设置 GL 资源
+            Rendering();
+        }else{
+
+            // 4. 创建 EGL Surface
+            m_surface = eglCreatePbufferSurface(shareDisplay, config,  surfaceAttribs);
+
+
+            if (m_surface == EGL_NO_SURFACE) {
+                LOGE("eglCreateWindowSurface failed: %x", eglGetError());
+                return false;
+            }
+
+            m_context = eglCreateContext(shareDisplay, config, second_context, ctxAttribs);
+            if (m_context == EGL_NO_CONTEXT) {
+                LOGE("eglCreateContext failed: %x", eglGetError());
+                return false;
+            }
+            //}
+
+
+            // 6. 绑定上下文
+            if (eglMakeCurrent(shareDisplay, m_surface, m_surface, m_context) == EGL_FALSE) {
+                LOGE("eglMakeCurrent failed: %x", eglGetError());
+                return false;
+            }
+
+
+            // 获取视口大小
+            EGLint width, height;
+            eglQuerySurface(shareDisplay, m_surface, EGL_WIDTH, &width);
+            eglQuerySurface(shareDisplay, m_surface, EGL_HEIGHT, &height);
+            m_width = width;
+            m_height = height;
+            LOGI("EGL context made current successfully!");
+
+            CreateTexture11();
+            // 7. 设置 GL 资源
+            Rendering();
         }
-        //}
 
-
-        // 6. 绑定上下文
-        if (eglMakeCurrent(unityDisplay, m_surface, m_surface, m_context) == EGL_FALSE) {
-            LOGE("eglMakeCurrent failed: %x", eglGetError());
-            return false;
-        }
-
-
-        // 获取视口大小
-        EGLint width, height;
-        eglQuerySurface(unityDisplay, m_surface, EGL_WIDTH, &width);
-        eglQuerySurface(unityDisplay, m_surface, EGL_HEIGHT, &height);
-        m_width = width;
-        m_height = height;
-        LOGI("EGL context made current successfully!");
-
-        CreateTexture11();
-        // 7. 设置 GL 资源
-        Rendering();
 
 
         return true;
@@ -319,18 +380,23 @@ void main() {
 
 
     bool GLRenderer::SetupEGL(EGLConfig* config) {
-        if(unityDisplay == EGL_NO_DISPLAY){
+        if(shareDisplay == EGL_NO_DISPLAY){
             // 1. 获取 Display
-            unityDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-            if (unityDisplay == EGL_NO_DISPLAY) {
+            shareDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+            if (shareDisplay == EGL_NO_DISPLAY) {
                 LOGE("eglGetDisplay failed: %x", eglGetError());
+                return false;
+            }
+            if (!eglInitialize(shareDisplay, nullptr, nullptr)) {
+                LOGE("eglInitialize failed, err=0x%x", eglGetError());
+                shareDisplay = EGL_NO_DISPLAY;
                 return false;
             }
         }
 
         // 2. 初始化 EGL
         EGLint major, minor;
-        if (eglInitialize(unityDisplay, &major, &minor) == EGL_FALSE) {
+        if (eglInitialize(shareDisplay, &major, &minor) == EGL_FALSE) {
             LOGE("eglInitialize failed: %x", eglGetError());
             return false;
         }
@@ -351,7 +417,7 @@ void main() {
 
 
         EGLint numConfigs;
-        if (eglChooseConfig(unityDisplay, attribs, config, 1, &numConfigs) == EGL_FALSE || numConfigs == 0) {
+        if (eglChooseConfig(shareDisplay, attribs, config, 1, &numConfigs) == EGL_FALSE || numConfigs == 0) {
             LOGE("eglChooseConfig failed or found no configs: %x", eglGetError());
             return false;
         }

@@ -61,10 +61,18 @@ class NativeRenderer{
 
 
     fun secondRender(surface: Surface) {
+
+
         secondRenderThread = thread {
             secondInitialization(surface)
         }
         secondRenderThread = null
+
+
+//        primaryRenderThread = thread {
+//            primaryInitialization(surface)
+//        }
+//        primaryRenderThread = null
     }
 
     fun pauseRendering(){

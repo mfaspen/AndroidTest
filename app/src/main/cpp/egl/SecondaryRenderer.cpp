@@ -30,11 +30,22 @@ namespace egl{
     void SecondaryRenderer::Draw(){
 
 
+
+        GL_CALL(glBindTexture(GL_TEXTURE_2D, localTex));
+        GLint bound = 0;
+        GL_CALL(glGetIntegerv(GL_TEXTURE_BINDING_2D, &bound));
+        __android_log_print(ANDROID_LOG_INFO, "looking", "bound=%d glError=0x%x", bound, glGetError());
+
+        // read a small area to check content (slow - debug only)
+        unsigned char pixels[4];
+        GL_CALL(glReadPixels(0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixels));
+        __android_log_print(ANDROID_LOG_INFO, "looking", "first pixel RGBA=%u,%u,%u,%u", pixels[0], pixels[1], pixels[2], pixels[3]);
+
         // setup sampling params if needed
 
 
 
-        if (unityDisplay == EGL_NO_DISPLAY || m_context == EGL_NO_CONTEXT) {
+        if (shareDisplay == EGL_NO_DISPLAY || second_context == EGL_NO_CONTEXT) {
             LOGE("call to OpenGL ES API with no current context or display!");
             return;
         }
@@ -46,57 +57,57 @@ namespace egl{
         glClear(GL_COLOR_BUFFER_BIT);
 
         // 使用着色器程序
-        glUseProgram(m_program);
+        GL_CALL(glUseProgram(m_program));
 
-        glActiveTexture(GL_TEXTURE0);
+        GL_CALL(glActiveTexture(GL_TEXTURE0));
 
-        if(renderVsync % 200 > 100){
-            glBindTexture(GL_TEXTURE_2D,localTex);
+        if(localTex > 0){
+            GL_CALL(glBindTexture(GL_TEXTURE_2D,localTex));
         }else{
 
-            glBindTexture(GL_TEXTURE_2D,texture11);
+            GL_CALL(glBindTexture(GL_TEXTURE_2D,texture11));
         }
         // 绑定 VAO 并绘制
-        glBindVertexArray(m_vao);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-        glBindVertexArray(0);
+        GL_CALL(glBindVertexArray(m_vao));
+        GL_CALL(glDrawArrays(GL_TRIANGLES, 0, 6));
+        GL_CALL(glBindVertexArray(0));
 
         // 交换缓冲区，显示到屏幕
-        //eglSwapBuffers(unityDisplay, m_surface[0].surface);
+        //eglSwapBuffers(shareDisplay, m_surface[0].surface);
         //long long tempTime = get_nano_time();
         // 交换缓冲区，显示到屏幕
-        //eglSwapBuffers(unityDisplay, m_surface[0].surface);
+        //eglSwapBuffers(shareDisplay, m_surface[0].surface);
         //LOGE("FLUSH time-consuming:%lld",get_nano_time() - tempTime );
         glViewport(m_width/2,0,m_width/2,m_height);
-        if (unityDisplay == EGL_NO_DISPLAY || m_context == EGL_NO_CONTEXT) {
+        if (shareDisplay == EGL_NO_DISPLAY || second_context == EGL_NO_CONTEXT) {
             LOGE("call to OpenGL ES API with no current context or display!");
             return;
         }
         // 使用着色器程序
-        glUseProgram(m_program);
+        GL_CALL(glUseProgram(m_program));
 
         // 绑定 VAO 并绘制
-        glActiveTexture(GL_TEXTURE0);
-        if(renderVsync % 200 > 100){
-            glBindTexture(GL_TEXTURE_2D,texture11);
+        GL_CALL(glActiveTexture(GL_TEXTURE0));
+        if(localTex > 0){
+            GL_CALL(glBindTexture(GL_TEXTURE_2D,localTex));
         }else{
 
-            glBindTexture(GL_TEXTURE_2D,localTex);
+            GL_CALL(glBindTexture(GL_TEXTURE_2D,texture11));
         }
         int w,h;
-        glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &w);
-        glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &h);
+        GL_CALL(glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &w));
+        GL_CALL(glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &h));
 
         LOGE("looking glGetTexLevelParameteriv %d   %d",w,h);
-        glBindVertexArray(m_vao);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-        glBindVertexArray(0);
+        GL_CALL(glBindVertexArray(m_vao));
+        GL_CALL(glDrawArrays(GL_TRIANGLES, 0, 6));
+        GL_CALL(glBindVertexArray(0));
 
         // 交换缓冲区，显示到屏幕
-        //eglSwapBuffers(unityDisplay, m_surface[0].surface);
+        //eglSwapBuffers(shareDisplay, m_surface[0].surface);
         //long long tempTime = get_nano_time();
         // 交换缓冲区，显示到屏幕
-        //eglSwapBuffers(unityDisplay, m_surface[0].surface);
+        //eglSwapBuffers(shareDisplay, m_surface[0].surface);
         GL_CALL(glFlush());
         //LOGE("FLUSH time-consuming:%lld",get_nano_time() - tempTime );
 
@@ -105,18 +116,23 @@ namespace egl{
     }
 
     bool SecondaryRenderer::SetupEGL(EGLConfig* config) {
-        if(unityDisplay == EGL_NO_DISPLAY){
+        if(shareDisplay == EGL_NO_DISPLAY){
             // 1. 获取 Display
-            unityDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-            if (unityDisplay == EGL_NO_DISPLAY) {
+            shareDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+            if (shareDisplay == EGL_NO_DISPLAY) {
                 LOGE("eglGetDisplay failed: %x", eglGetError());
+                return false;
+            }
+            if (!eglInitialize(shareDisplay, nullptr, nullptr)) {
+                LOGE("eglInitialize failed, err=0x%x", eglGetError());
+                shareDisplay = EGL_NO_DISPLAY;
                 return false;
             }
         }
 
         // 2. 初始化 EGL
         EGLint major, minor;
-        if (eglInitialize(unityDisplay, &major, &minor) == EGL_FALSE) {
+        if (eglInitialize(shareDisplay, &major, &minor) == EGL_FALSE) {
             LOGE("eglInitialize failed: %x", eglGetError());
             return false;
         }
@@ -137,7 +153,7 @@ namespace egl{
 
 
         EGLint numConfigs;
-        if (eglChooseConfig(unityDisplay, attribs, config, 1, &numConfigs) == EGL_FALSE || numConfigs == 0) {
+        if (eglChooseConfig(shareDisplay, attribs, config, 1, &numConfigs) == EGL_FALSE || numConfigs == 0) {
             LOGE("eglChooseConfig failed or found no configs: %x", eglGetError());
             return false;
         }
@@ -246,18 +262,18 @@ namespace egl{
 
 
     SecondaryRenderer::~SecondaryRenderer() {
-        if (unityDisplay != EGL_NO_DISPLAY) {
-            eglMakeCurrent(unityDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-            if (m_context != EGL_NO_CONTEXT) {
-                eglDestroyContext(unityDisplay, m_context);
+        if (shareDisplay != EGL_NO_DISPLAY) {
+            eglMakeCurrent(shareDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+            if (second_context != EGL_NO_CONTEXT) {
+                eglDestroyContext(shareDisplay, second_context);
             }
             if (m_surface != EGL_NO_SURFACE) {
-                eglDestroySurface(unityDisplay, m_surface);
+                eglDestroySurface(shareDisplay, m_surface);
             }
-            eglTerminate(unityDisplay);
+            eglTerminate(shareDisplay);
         }
-        unityDisplay = EGL_NO_DISPLAY;
-        m_context = EGL_NO_CONTEXT;
+        shareDisplay = EGL_NO_DISPLAY;
+        second_context = EGL_NO_CONTEXT;
         m_surface = EGL_NO_SURFACE;
 
         // 释放 GL 资源

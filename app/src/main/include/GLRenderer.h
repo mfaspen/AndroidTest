@@ -19,7 +19,7 @@
 #include <GLES3/gl32.h>
 #include <GLES3/gl3ext.h>
 
-#define GL_CALL(x) (x)//do{x;CheckGLError(__FILE__,__LINE__);}while(0)
+#define GL_CALL(x) do{x;CheckGLError(__FILE__,__LINE__);}while(0)
 
 #define LOG_THREAD_ID(msg) LOGI("%s: Thread ID: %lu", msg, (long unsigned int)pthread_self())
 
@@ -44,9 +44,13 @@ namespace egl{
     extern const char* FRAGMENT_SHADER_SOURCE;
     extern EGLContext unity_context;
     extern EGLDisplay unityDisplay;
+    extern EGLDisplay shareDisplay;
     extern EGLConfig unityConfig;
     extern GLuint texture11;
+    extern EGLImageKHR eglImage;
     extern int* unityPara;
+    extern EGLContext second_context;
+    extern EGLSurface unitySurface;
     extern int unityImg[3];
     extern GLuint localTex;
     extern JNIEnv* kt;

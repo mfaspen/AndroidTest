@@ -21,7 +21,7 @@ void OnRenderEvent(int eventID)
     switch (eventID)
     {
         case 1:
-            egl :: RenderWithUnityTexture();
+            //egl :: RenderWithUnityTexture();
             break;
         case 2:
             // 例如 stop / cleanup

@@ -87,3 +87,28 @@ dependencies {
 //        }
 //    }
 //}
+
+
+tasks.register<Copy>("copyAar") {
+    val sourceAarFileName = "app-release.aar"
+
+    // 1. 查找源文件：默认的输出目录
+    from(fileTree(mapOf(
+        "dir" to "$buildDir/outputs/aar",
+        "include" to sourceAarFileName
+    )))
+
+    // 2. 使用 into() 设置目标目录
+    // rootDir 是对项目根目录的引用
+    into("D:\\UNITY\\TESTShader\\Screen\\Assets\\Plugins\\Android")
+
+    // 确保目标目录存在 (使用 File.mkdirs() 或 Kotlin 的 .mkdirs())
+//    doFirst {
+//        rootDir.resolve("artifacts").mkdirs()
+//    }
+}
+
+// 确保 copyAar 任务在 assembleRelease 任务完成后运行
+tasks.named("assemble") {
+    finalizedBy("copyAar")
+}

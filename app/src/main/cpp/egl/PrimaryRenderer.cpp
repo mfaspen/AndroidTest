@@ -10,9 +10,26 @@ namespace egl{
     }
 
 
+
+    GLuint fbo;
     void PrimaryRenderer::Rendering(){
 
+
+
         SetupGL();
+        glGenFramebuffers(1, &fbo);
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+        glGenTextures(1, &localTex);
+        glBindTexture(GL_TEXTURE_2D, localTex);
+        glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB , 256, 256, 0,GL_RGB,GL_UNSIGNALED, nullptr); // 绑定EGLImageKHR
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+
+        GL_CALL(glBindTexture(GL_TEXTURE_2D, 0));
+        glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,localTex,0);
+
+        GL_CALL(glBindFramebuffer(GL_FRAMEBUFFER, 0));
         while(true){
             if (paused) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(50));
@@ -26,18 +43,18 @@ namespace egl{
     }
 
     void PrimaryRenderer::draw(){
-        if (unityDisplay == EGL_NO_DISPLAY || m_context == EGL_NO_CONTEXT) {
+        if (shareDisplay == EGL_NO_DISPLAY || m_context == EGL_NO_CONTEXT) {
             LOGE("call to OpenGL ES API with no current context or display!");
             return;
         }
-
+        glBindFramebuffer(GL_FRAMEBUFFER,fbo);
 
 
         // 设置视口
         glViewport(0, 0, m_width, m_height);
 
         // 清除屏幕
-        glClearColor(0.2f, 1.3f, 0.3f, 1.0f); // 灰蓝色背景
+        glClearColor(0.2f, 0.3f, 1.3f, 1.0f); // 灰蓝色背景
         glClear(GL_COLOR_BUFFER_BIT);
 
         // 使用着色器程序
@@ -54,11 +71,12 @@ namespace egl{
         glDrawArrays(GL_TRIANGLES, 0, 6);
         glBindVertexArray(0);
 
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
         // 交换缓冲区，显示到屏幕
-        //eglSwapBuffers(unityDisplay, m_surface[0].surface);
+        //eglSwapBuffers(shareDisplay, m_surface[0].surface);
         //long long tempTime = get_nano_time();
         // 交换缓冲区，显示到屏幕
-        //eglSwapBuffers(unityDisplay, m_surface[0].surface);
+        //eglSwapBuffers(shareDisplay, m_surface[0].surface);
         GL_CALL(glFlush());
         //LOGE("FLUSH time-consuming:%lld",get_nano_time() - tempTime );
 
@@ -67,10 +85,10 @@ namespace egl{
 
 
     bool PrimaryRenderer::SetupEGL(EGLConfig* config) {
-        if(unityDisplay == EGL_NO_DISPLAY){
+        if(shareDisplay == EGL_NO_DISPLAY){
             // 1. 获取 Display
-            unityDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-            if (unityDisplay == EGL_NO_DISPLAY) {
+            shareDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+            if (shareDisplay == EGL_NO_DISPLAY) {
                 LOGE("eglGetDisplay failed: %x", eglGetError());
                 return false;
             }
@@ -78,7 +96,7 @@ namespace egl{
 
         // 2. 初始化 EGL
         EGLint major, minor;
-        if (eglInitialize(unityDisplay, &major, &minor) == EGL_FALSE) {
+        if (eglInitialize(shareDisplay, &major, &minor) == EGL_FALSE) {
             LOGE("eglInitialize failed: %x", eglGetError());
             return false;
         }
@@ -99,7 +117,7 @@ namespace egl{
 
 
         EGLint numConfigs;
-        if (eglChooseConfig(unityDisplay, attribs, config, 1, &numConfigs) == EGL_FALSE || numConfigs == 0) {
+        if (eglChooseConfig(shareDisplay, attribs, config, 1, &numConfigs) == EGL_FALSE || numConfigs == 0) {
             LOGE("eglChooseConfig failed or found no configs: %x", eglGetError());
             return false;
         }
@@ -204,17 +222,17 @@ namespace egl{
 
 
     PrimaryRenderer::~PrimaryRenderer() {
-        if (unityDisplay != EGL_NO_DISPLAY) {
-            eglMakeCurrent(unityDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+        if (shareDisplay != EGL_NO_DISPLAY) {
+            eglMakeCurrent(shareDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
             if (m_context != EGL_NO_CONTEXT) {
-                eglDestroyContext(unityDisplay, m_context);
+                eglDestroyContext(shareDisplay, m_context);
             }
             if (m_surface != EGL_NO_SURFACE) {
-                eglDestroySurface(unityDisplay, m_surface);
+                eglDestroySurface(shareDisplay, m_surface);
             }
-            eglTerminate(unityDisplay);
+            eglTerminate(shareDisplay);
         }
-        unityDisplay = EGL_NO_DISPLAY;
+        shareDisplay = EGL_NO_DISPLAY;
         m_context = EGL_NO_CONTEXT;
         m_surface = EGL_NO_SURFACE;
 

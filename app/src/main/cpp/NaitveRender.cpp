@@ -56,10 +56,10 @@ Java_com_example_Application_NativeRenderer_secondInitialization(JNIEnv* env, jc
 
     LOGI("%s: looking Thread ID: %lu", "init",(long unsigned int)pthread_self()); //
     ANativeWindow* window = ANativeWindow_fromSurface(env, surface);
-
     if (!egl::InitSecondaryRenderer(window)) {
         LOGE("NativeRenderer init failed!");
     }
+
     ANativeWindow_release(window);
 }
 
