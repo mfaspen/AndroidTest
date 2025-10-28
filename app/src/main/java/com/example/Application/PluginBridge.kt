@@ -26,6 +26,7 @@ object PluginBridge{
     // -----------------------------------------------------------------
     @JvmStatic
     fun startPresentation(activity: Activity){
+        Log.d("looking","startPresentation")
         val surfaceView = SurfaceView(activity)
         surfaceView.holder.addCallback(object :SurfaceHolder.Callback {
             // --- SurfaceHolder.Callback 实现 ---
@@ -55,7 +56,6 @@ object PluginBridge{
         }
 
 
-        Log.d("looking","startPresentation")
         val displayManager = activity.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
         if(displayManager.displays.count()>1){
 

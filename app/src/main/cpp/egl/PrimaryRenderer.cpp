@@ -25,10 +25,10 @@ namespace egl{
     }
 
     bool PrimaryRenderer::SetupEGL(EGLConfig* config) {
-        if(m_display == EGL_NO_DISPLAY){
+        if(shareDisplay == EGL_NO_DISPLAY){
             // 1. 获取 Display
-            m_display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-            if (m_display == EGL_NO_DISPLAY) {
+            shareDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+            if (shareDisplay == EGL_NO_DISPLAY) {
                 LOGE("eglGetDisplay failed: %x", eglGetError());
                 return false;
             }
@@ -36,7 +36,7 @@ namespace egl{
 
         // 2. 初始化 EGL
         EGLint major, minor;
-        if (eglInitialize(m_display, &major, &minor) == EGL_FALSE) {
+        if (eglInitialize(shareDisplay, &major, &minor) == EGL_FALSE) {
             LOGE("eglInitialize failed: %x", eglGetError());
             return false;
         }
@@ -56,7 +56,7 @@ namespace egl{
 
 
         EGLint numConfigs;
-        if (eglChooseConfig(m_display, attribs, config, 1, &numConfigs) == EGL_FALSE || numConfigs == 0) {
+        if (eglChooseConfig(shareDisplay, attribs, config, 1, &numConfigs) == EGL_FALSE || numConfigs == 0) {
             LOGE("eglChooseConfig failed or found no configs: %x", eglGetError());
             return false;
         }
@@ -77,9 +77,12 @@ namespace egl{
 
         // 三角形顶点数据 (-1.0 到 1.0 的归一化坐标)
         float vertices[] = {
-                -0.5f, -0.5f, 0.0f, // 左下角
-                0.5f, -0.5f, 0.0f, // 右下角
-                0.0f,  0.5f, 0.0f  // 顶部
+                -0.9f, -0.9f, 0.0f,0.0f,0.0f, // 左下角
+                0.9f, -0.9f, 0.0f, 1.0f,0.0f,// 右下角
+                -0.9f,  0.9f, 0.0f, 0.0f,1.0f, // 左上角
+                -0.9f,  0.9f, 0.0f,  0.0f,1.0f,// 左上角
+                0.9f, -0.9f, 0.0f, 1.0f,0.0f,// 右下角
+                0.9f,  0.9f, 0.0f,  1.0f,1.0f,// 右上角
         };
 
         GLuint VBO;
@@ -93,9 +96,11 @@ namespace egl{
         GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, VBO));
         GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW));
 
-        // 配置顶点属性指针
-        GL_CALL(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0));
+        // 配置顶点属性指针  1:位置  2：多少数据 3：数据类型 4:是否为0-255 (0-1)  5 :总大小 6:数据偏移
+        GL_CALL(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0));
         GL_CALL(glEnableVertexAttribArray(0));
+        GL_CALL(glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(sizeof (float)*3)));
+        GL_CALL(glEnableVertexAttribArray(1));
 
         // 解绑 VAO (保持 VBO 绑定)
         GL_CALL(glBindVertexArray(0));
@@ -153,7 +158,7 @@ namespace egl{
 
 
     void PrimaryRenderer::draw(){
-        if (m_display == EGL_NO_DISPLAY || m_context == EGL_NO_CONTEXT) {
+        if (shareDisplay == EGL_NO_DISPLAY || primaryContext == EGL_NO_CONTEXT) {
             LOGE("call to OpenGL ES API with no current context or display!");
             return;
         }
@@ -170,12 +175,21 @@ namespace egl{
         glUseProgram(m_program);
 
         // 绑定 VAO 并绘制
+
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D,texture11);
+
+
+
+        //}
+        // 绑定 VAO 并绘制
         GL_CALL(glBindVertexArray(m_vao));
-        GL_CALL(glDrawArrays(GL_TRIANGLES, 0, 3));
+        GL_CALL(glDrawArrays(GL_TRIANGLES, 0, 6));
         GL_CALL(glBindVertexArray(0));
         //long long tempTime = nano_time1();
         // 交换缓冲区，显示到屏幕
-        //eglSwapBuffers(m_display, m_surface[0].surface);
+        //eglSwapBuffers(shareDisplay, m_surface[0].surface);
         GL_CALL(glFlush());
         //LOGE("FLUSH time-consuming:%lld",nano_time1() - tempTime );
 
@@ -183,18 +197,18 @@ namespace egl{
 
 
     PrimaryRenderer::~PrimaryRenderer() {
-        if (m_display != EGL_NO_DISPLAY) {
-            eglMakeCurrent(m_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-            if (m_context != EGL_NO_CONTEXT) {
-                eglDestroyContext(m_display, m_context);
+        if (shareDisplay != EGL_NO_DISPLAY) {
+            eglMakeCurrent(shareDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+            if (primaryContext != EGL_NO_CONTEXT) {
+                eglDestroyContext(shareDisplay, primaryContext);
             }
             if (m_surface != EGL_NO_SURFACE) {
-                eglDestroySurface(m_display, m_surface);
+                eglDestroySurface(shareDisplay, m_surface);
             }
-            eglTerminate(m_display);
+            eglTerminate(shareDisplay);
         }
-        m_display = EGL_NO_DISPLAY;
-        m_context = EGL_NO_CONTEXT;
+        shareDisplay = EGL_NO_DISPLAY;
+        primaryContext = EGL_NO_CONTEXT;
         m_surface = EGL_NO_SURFACE;
 
         // 释放 GL 资源

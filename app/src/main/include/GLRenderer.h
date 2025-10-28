@@ -29,20 +29,37 @@ namespace egl{
     long long get_nano_time();
 
     void CheckGLError(const char* file,int line);
-
+    void CreateTexture11();
 
     extern const char* VERTEX_SHADER_SOURCE;
 
     extern const char* FRAGMENT_SHADER_SOURCE;
 
-    extern EGLContext m_context;
+    extern EGLContext unity_context;
+    extern EGLContext primaryContext;
+    extern EGLContext second_context;
 
+    extern EGLDisplay unityDisplay;
+    extern EGLDisplay shareDisplay;
+
+    extern EGLSurface unitySurface;
+
+    extern EGLConfig unityConfig;
+
+    extern GLuint texture11;
+    extern GLuint localTex;
+
+    extern int* unityPara;
+    extern int unityImg[3];
+
+    extern JNIEnv* kt;
+
+    extern bool paused;
 
 
     class GLRenderer {
 
     protected:
-        EGLDisplay m_display;
         ANativeWindow* m_window = nullptr;
         EGLSurface m_surface= EGL_NO_SURFACE;
         int32_t m_width,m_height;

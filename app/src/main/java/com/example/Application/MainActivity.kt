@@ -70,7 +70,7 @@ class MainActivity : AppCompatActivity(){
     companion object {
         init {
             // 加载你的 JNI 库
-            System.loadLibrary("myappTest")
+            System.loadLibrary("SecondRendering")
         }
     }
 

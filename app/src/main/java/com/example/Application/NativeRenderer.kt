@@ -12,7 +12,7 @@ class NativeRenderer{
 
     companion object {
         init {
-            System.loadLibrary("myappTest") // 名称同 CMake 中生成的库
+            System.loadLibrary("SecondRendering") // 名称同 CMake 中生成的库
         }
 
 
