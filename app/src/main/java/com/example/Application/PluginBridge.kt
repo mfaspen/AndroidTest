@@ -32,14 +32,18 @@ object PluginBridge{
             // --- SurfaceHolder.Callback 实现 ---
 
             override fun surfaceCreated(holder: SurfaceHolder) {
+                Log.d("SurfaceLife", "surfaceCreated " + holder.getSurface());
                 primaryHandle.primaryRender(holder.surface)
             }
 
             override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+                Log.d("SurfaceLife", "surfaceChanged " + width + "x" + height);
                 // 可以在这里处理窗口大小变化，但在这个例子中，C++ render() 会查询新的大小
             }
 
             override fun surfaceDestroyed(holder: SurfaceHolder) {
+                Log.d("SurfaceLife", "surfaceDestroyed");
+                primaryHandle.surfaceDestroyed();
             }
 
 
@@ -56,15 +60,15 @@ object PluginBridge{
         }
 
 
-        val displayManager = activity.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
-        if(displayManager.displays.count()>1){
-
-            val displays = displayManager.displays[1]
-
-            activePresentation = MyPresentation(activity,displays)
+//        val displayManager = activity.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
+//        if(displayManager.displays.count()>1){
 //
-            activePresentation?.show()
-
-        }
+//            val displays = displayManager.displays[1]
+//
+//            activePresentation = MyPresentation(activity,displays)
+////
+//            activePresentation?.show()
+//
+//        }
     }
 }

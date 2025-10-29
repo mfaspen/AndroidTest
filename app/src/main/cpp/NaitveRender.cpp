@@ -8,24 +8,59 @@
 
 #include "NaitveRender.h"   // jni接口
 #include "GLRenderer.h"
-#include "interface.h"  //c++接口
 #include <android/native_window_jni.h> // <-- 必须添加这个头文件！
 #include <android/native_window.h>
 #include <cmath>
 
 
 
+static JavaVM* gJvm = NULL;
+static jobject gGlobalSurface = NULL; // global ref to java Surface
+static ANativeWindow* gWindow = NULL;
+
+
+extern "C" JNIEXPORT void JNICALL
+ Java_com_example_Application_NativeRenderer_onSurfaceDestroyed() {
+    egl::SurfaceDestroyed();
+}
+
+
 
 extern "C" JNIEXPORT jlong JNICALL
 Java_com_example_Application_NativeRenderer_primaryInitialization(JNIEnv* env, jclass /* clazz */, jobject surface) {
 
-    LOGI("%s: Thread ID: %lu", "init",(long unsigned int)pthread_self()); //
-    ANativeWindow* window = ANativeWindow_fromSurface(env, surface);
+    // if there is an existing window, release it first
+    if (gWindow) {
+        ANativeWindow_release(gWindow);
+        gWindow = NULL;
+    }
+    if (surface == NULL) {
+        LOGE("nativeSetSurface called with NULL");
+        return 0 ;
+    }
 
-    if (!egl::InitPrimaryRenderer(window)) {
+//    // Create a global ref so other threads can use it safely
+//    gGlobalSurface = env->NewGlobalRef(surface);
+//    if (gGlobalSurface == NULL) {
+//        LOGE("Failed to create global ref for surface");
+//        return 0 ;
+//    }
+
+    // Immediately create ANativeWindow on this thread (UI thread)
+    gWindow = ANativeWindow_fromSurface(env, surface);
+    if (gWindow == NULL) {
+        LOGE("ANativeWindow_fromSurface returned NULL");
+        // keep global ref so we can try later; but consider deleting the global ref if unrecoverable
+    } else {
+        LOGI("ANativeWindow created: %p", gWindow);
+    }
+
+    if (!egl::InitPrimaryRenderer(gWindow)) {
         LOGE("NativeRenderer init failed!");
     }
-    ANativeWindow_release(window);
+
+
+    ANativeWindow_release(gWindow);
 
 
 }

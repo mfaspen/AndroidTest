@@ -22,7 +22,8 @@ class NativeRenderer{
         @JvmStatic
         private external fun secondInitialization(surface: Any): Long
 
-
+        @JvmStatic
+        private external fun onSurfaceDestroyed()
     }
 
     /**
@@ -33,6 +34,11 @@ class NativeRenderer{
              primaryInitialization(surface)
         }
         primaryRenderThread = null
+
+//        secondRenderThread = thread {
+//            secondInitialization(surface)
+//        }
+//        secondRenderThread = null
     }
 
 
@@ -42,5 +48,7 @@ class NativeRenderer{
         }
         secondRenderThread = null
     }
-
+    fun surfaceDestroyed(){
+        onSurfaceDestroyed()
+    }
 }

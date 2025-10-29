@@ -26,10 +26,10 @@ namespace egl{
 
 
     bool SecondaryRenderer::SetupEGL(EGLConfig* config) {
-        if(shareDisplay == EGL_NO_DISPLAY){
+        if(unityDisplay == EGL_NO_DISPLAY){
             // 1. 获取 Display
-            shareDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-            if (shareDisplay == EGL_NO_DISPLAY) {
+            unityDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+            if (unityDisplay == EGL_NO_DISPLAY) {
                 LOGE("eglGetDisplay failed: %x", eglGetError());
                 return false;
             }
@@ -37,7 +37,7 @@ namespace egl{
 
         // 2. 初始化 EGL
         EGLint major, minor;
-        if (eglInitialize(shareDisplay, &major, &minor) == EGL_FALSE) {
+        if (eglInitialize(unityDisplay, &major, &minor) == EGL_FALSE) {
             LOGE("eglInitialize failed: %x", eglGetError());
             return false;
         }
@@ -57,7 +57,7 @@ namespace egl{
 
 
         EGLint numConfigs;
-        if (eglChooseConfig(shareDisplay, attribs, config, 1, &numConfigs) == EGL_FALSE || numConfigs == 0) {
+        if (eglChooseConfig(unityDisplay, attribs, config, 1, &numConfigs) == EGL_FALSE || numConfigs == 0) {
             LOGE("eglChooseConfig failed or found no configs: %x", eglGetError());
             return false;
         }
@@ -155,14 +155,38 @@ namespace egl{
 
 
     void SecondaryRenderer::Update(){
+        int w,h;
+        glBindTexture(GL_TEXTURE_2D, texture11);
 
+        glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &w);
+        glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &h);
+        LOGI("pixel w = %d , h = %d", w,h);
+        if(w == 0 || h == 0){
+            w = h =1;
+        }
+        std::vector<unsigned char> buf(w*h*4);
+        glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, buf.data());
 
+        LOGI("pixel RGBA=%d,%d,%d,%d", buf[0], buf[1], buf[2], buf[3]);
 
+//        EGLContext ctx_main = eglGetCurrentContext();
+//// 在 plugin 线程里：
+//        EGLContext ctx_plugin = eglGetCurrentContext();
+
+//        if (second_context == primaryContext) {
+//            LOGI("same context");
+//        } else {
+//            LOGI("different context");
+//        }
+//
+//        EGLContext share;
+//        eglQueryContext(unityDisplay, second_context, EGL_SHARED_CONTEXT, (EGLint*)&share);
+//        LOGI("ctx_plugin shared with: %p", share);
     }
 
 
     void SecondaryRenderer::Draw(){
-        if (shareDisplay == EGL_NO_DISPLAY || second_context == EGL_NO_CONTEXT) {
+        if (unityDisplay == EGL_NO_DISPLAY || second_context == EGL_NO_CONTEXT) {
             LOGE("call to OpenGL ES API with no current context or display!");
             return;
         }
@@ -184,10 +208,10 @@ namespace egl{
         glBindVertexArray(0);
 
         // 交换缓冲区，显示到屏幕
-        //eglSwapBuffers(shareDisplay, m_surface[0].surface);
+        //eglSwapBuffers(unityDisplay, m_surface[0].surface);
         //long long tempTime = get_nano_time();
         // 交换缓冲区，显示到屏幕
-        //eglSwapBuffers(shareDisplay, m_surface[0].surface);
+        //eglSwapBuffers(unityDisplay, m_surface[0].surface);
         GL_CALL(glFlush());
         //LOGE("FLUSH time-consuming:%lld",get_nano_time() - tempTime );
 
@@ -195,17 +219,17 @@ namespace egl{
     }
 
     SecondaryRenderer::~SecondaryRenderer() {
-        if (shareDisplay != EGL_NO_DISPLAY) {
-            eglMakeCurrent(shareDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+        if (unityDisplay != EGL_NO_DISPLAY) {
+            eglMakeCurrent(unityDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
             if (second_context != EGL_NO_CONTEXT) {
-                eglDestroyContext(shareDisplay, second_context);
+                eglDestroyContext(unityDisplay, second_context);
             }
             if (m_surface != EGL_NO_SURFACE) {
-                eglDestroySurface(shareDisplay, m_surface);
+                eglDestroySurface(unityDisplay, m_surface);
             }
-            eglTerminate(shareDisplay);
+            eglTerminate(unityDisplay);
         }
-        shareDisplay = EGL_NO_DISPLAY;
+        unityDisplay = EGL_NO_DISPLAY;
         second_context = EGL_NO_CONTEXT;
         m_surface = EGL_NO_SURFACE;
 

@@ -4,12 +4,19 @@
 
 #ifndef MY_APPLICATION_INTERFACE_H
 #define MY_APPLICATION_INTERFACE_H
-
+#define MY_API __attribute__((visibility("default")))
 #include <stdint.h>
+
+
+#include <atomic>
+#include <iostream>
 
 
 extern "C" {
 
+    MY_API void* GetRenderEventFunc();
+    MY_API void setPointer(int* id);
+
 };
-int test_add();
+
 #endif //MY_APPLICATION_INTERFACE_H
