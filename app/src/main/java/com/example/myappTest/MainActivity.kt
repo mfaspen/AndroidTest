@@ -15,7 +15,6 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import kotlin.concurrent.thread
-
 /**
  * 隐藏状态栏并实现沉浸式全屏
  *
@@ -46,14 +45,12 @@ fun hideStatusBar(window: Window, view: View) {
 }
 
 class MainActivity : AppCompatActivity(){
-
     // 假设你的布局文件包含一个 id 为 'surfaceView' 的 SurfaceView
     private lateinit var myPresentation : MyPresentation
     private lateinit var surfaceView: SurfaceView
     private var isRendering = false
     private var renderThread: Thread? = null
     private var primaryHandle = NativeRenderer()
-
 
 
     //private var secondaryDisplayPresentation:NaviteRenderer
@@ -82,6 +79,18 @@ class MainActivity : AppCompatActivity(){
         super.onCreate(savedInstanceState)
 
         setContentView(R.layout.activity_main)
+        val context: Context = this
+
+        DevicePression.init(context)
+
+        DevicePression.requestPermission { result ->
+            if (result.success) {
+                Log.d("looking","startPresentation")
+            }
+        }
+
+
+
         hideStatusBar(window, window.decorView)
 
 
