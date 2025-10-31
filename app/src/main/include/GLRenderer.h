@@ -26,34 +26,30 @@ namespace egl{
     bool InitPrimaryRenderer(ANativeWindow* window);
 
     bool InitSecondaryRenderer(ANativeWindow* window);
+
     long long get_nano_time();
 
     void CheckGLError(const char* file,int line);
-    void CreateTexture11();
+
+    void RenderWithUnityTexture();
+
+    void SetUnityPointer(int* uPara);
+
+
 
     extern const char* VERTEX_SHADER_SOURCE;
 
     extern const char* FRAGMENT_SHADER_SOURCE;
-
     extern EGLContext unity_context;
     extern EGLContext primaryContext;
     extern EGLContext second_context;
-
     extern EGLDisplay unityDisplay;
-    extern EGLDisplay shareDisplay;
-
-    extern EGLSurface unitySurface;
-
-    extern EGLConfig unityConfig;
-
+    extern EGLConfig eglConfig;
     extern GLuint texture11;
-    extern GLuint localTex;
-
     extern int* unityPara;
-    extern int unityImg[3];
-
+    extern int unityImg[4];
+    extern GLuint localTex;
     extern JNIEnv* kt;
-
     extern bool paused;
 
 
@@ -63,6 +59,7 @@ namespace egl{
         ANativeWindow* m_window = nullptr;
         EGLSurface m_surface= EGL_NO_SURFACE;
         int32_t m_width,m_height;
+        EGLDisplay m_display;
 
         GLuint m_program;
         GLuint m_vao;

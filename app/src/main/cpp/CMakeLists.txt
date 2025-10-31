@@ -27,6 +27,7 @@ project(SecondRendering)
 add_library(${PROJECT_NAME} SHARED
         # List C/C++ source files with relative paths to this CMakeLists.txt.
         NaitveRender.cpp interface.cpp getSlam.cpp egl/GLRenderer.cpp egl/PrimaryRenderer.cpp egl/SecondaryRenderer.cpp)
+
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../include/)
 
 find_library( log-lib log )

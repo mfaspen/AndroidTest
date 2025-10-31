@@ -26,7 +26,13 @@ object PluginBridge{
     // -----------------------------------------------------------------
     @JvmStatic
     fun startPresentation(activity: Activity){
-        Log.d("looking","startPresentation")
+
+        DeviceInit.init(activity)
+        DeviceInit.requestPermission { result ->
+            if (result.success) {
+                Log.d("looking","startPresentation")
+            }
+        }
         val surfaceView = SurfaceView(activity)
         surfaceView.holder.addCallback(object :SurfaceHolder.Callback {
             // --- SurfaceHolder.Callback 实现 ---
@@ -49,8 +55,9 @@ object PluginBridge{
             activity.addContentView(
                 surfaceView,
                 FrameLayout.LayoutParams(
-                    FrameLayout.LayoutParams.MATCH_PARENT,
-                    FrameLayout.LayoutParams.MATCH_PARENT
+//                    FrameLayout.LayoutParams.MATCH_PARENT,
+//                    FrameLayout.LayoutParams.MATCH_PARENT
+                    1080,600
                 )
             )
         }
@@ -66,5 +73,6 @@ object PluginBridge{
             activePresentation?.show()
 
         }
+
     }
 }

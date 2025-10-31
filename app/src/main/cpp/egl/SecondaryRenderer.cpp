@@ -26,10 +26,10 @@ namespace egl{
 
 
     bool SecondaryRenderer::SetupEGL(EGLConfig* config) {
-        if(shareDisplay == EGL_NO_DISPLAY){
+        if(m_display == EGL_NO_DISPLAY){
             // 1. 获取 Display
-            shareDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-            if (shareDisplay == EGL_NO_DISPLAY) {
+            m_display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+            if (m_display == EGL_NO_DISPLAY) {
                 LOGE("eglGetDisplay failed: %x", eglGetError());
                 return false;
             }
@@ -37,7 +37,7 @@ namespace egl{
 
         // 2. 初始化 EGL
         EGLint major, minor;
-        if (eglInitialize(shareDisplay, &major, &minor) == EGL_FALSE) {
+        if (eglInitialize(m_display, &major, &minor) == EGL_FALSE) {
             LOGE("eglInitialize failed: %x", eglGetError());
             return false;
         }
@@ -57,7 +57,7 @@ namespace egl{
 
 
         EGLint numConfigs;
-        if (eglChooseConfig(shareDisplay, attribs, config, 1, &numConfigs) == EGL_FALSE || numConfigs == 0) {
+        if (eglChooseConfig(m_display, attribs, config, 1, &numConfigs) == EGL_FALSE || numConfigs == 0) {
             LOGE("eglChooseConfig failed or found no configs: %x", eglGetError());
             return false;
         }
@@ -162,7 +162,7 @@ namespace egl{
 
 
     void SecondaryRenderer::Draw(){
-        if (shareDisplay == EGL_NO_DISPLAY || second_context == EGL_NO_CONTEXT) {
+        if (m_display == EGL_NO_DISPLAY || second_context == EGL_NO_CONTEXT) {
             LOGE("call to OpenGL ES API with no current context or display!");
             return;
         }
@@ -184,10 +184,10 @@ namespace egl{
         glBindVertexArray(0);
 
         // 交换缓冲区，显示到屏幕
-        //eglSwapBuffers(shareDisplay, m_surface[0].surface);
+        //eglSwapBuffers(m_display, m_surface[0].surface);
         //long long tempTime = get_nano_time();
         // 交换缓冲区，显示到屏幕
-        //eglSwapBuffers(shareDisplay, m_surface[0].surface);
+        //eglSwapBuffers(m_display, m_surface[0].surface);
         GL_CALL(glFlush());
         //LOGE("FLUSH time-consuming:%lld",get_nano_time() - tempTime );
 
@@ -195,17 +195,17 @@ namespace egl{
     }
 
     SecondaryRenderer::~SecondaryRenderer() {
-        if (shareDisplay != EGL_NO_DISPLAY) {
-            eglMakeCurrent(shareDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+        if (m_display != EGL_NO_DISPLAY) {
+            eglMakeCurrent(m_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
             if (second_context != EGL_NO_CONTEXT) {
-                eglDestroyContext(shareDisplay, second_context);
+                eglDestroyContext(m_display, second_context);
             }
             if (m_surface != EGL_NO_SURFACE) {
-                eglDestroySurface(shareDisplay, m_surface);
+                eglDestroySurface(m_display, m_surface);
             }
-            eglTerminate(shareDisplay);
+            eglTerminate(m_display);
         }
-        shareDisplay = EGL_NO_DISPLAY;
+        m_display = EGL_NO_DISPLAY;
         second_context = EGL_NO_CONTEXT;
         m_surface = EGL_NO_SURFACE;
 

@@ -18,17 +18,17 @@ namespace egl{
         while(true){
             update();
             draw();
+            usleep(16000);
         }
-        usleep(16000);
 
 
     }
 
     bool PrimaryRenderer::SetupEGL(EGLConfig* config) {
-        if(shareDisplay == EGL_NO_DISPLAY){
+        if(m_display == EGL_NO_DISPLAY){
             // 1. 获取 Display
-            shareDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-            if (shareDisplay == EGL_NO_DISPLAY) {
+            m_display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+            if (m_display == EGL_NO_DISPLAY) {
                 LOGE("eglGetDisplay failed: %x", eglGetError());
                 return false;
             }
@@ -36,7 +36,7 @@ namespace egl{
 
         // 2. 初始化 EGL
         EGLint major, minor;
-        if (eglInitialize(shareDisplay, &major, &minor) == EGL_FALSE) {
+        if (eglInitialize(m_display, &major, &minor) == EGL_FALSE) {
             LOGE("eglInitialize failed: %x", eglGetError());
             return false;
         }
@@ -56,7 +56,7 @@ namespace egl{
 
 
         EGLint numConfigs;
-        if (eglChooseConfig(shareDisplay, attribs, config, 1, &numConfigs) == EGL_FALSE || numConfigs == 0) {
+        if (eglChooseConfig(m_display, attribs, config, 1, &numConfigs) == EGL_FALSE || numConfigs == 0) {
             LOGE("eglChooseConfig failed or found no configs: %x", eglGetError());
             return false;
         }
@@ -148,24 +148,25 @@ namespace egl{
         return program;
     }
 
-
+    GLuint curLeftTex = 0;
+    GLuint curRightTex = 0;
 
     void PrimaryRenderer::update(){
 
-
-
+        curLeftTex = unityImg[0];
+        curRightTex = unityImg[1];
     }
 
 
     void PrimaryRenderer::draw(){
-        if (shareDisplay == EGL_NO_DISPLAY || primaryContext == EGL_NO_CONTEXT) {
+        if (m_display == EGL_NO_DISPLAY || primaryContext == EGL_NO_CONTEXT) {
             LOGE("call to OpenGL ES API with no current context or display!");
             return;
         }
 
 
         // 设置视口
-        GL_CALL(glViewport(0, 0, m_width, m_height));
+        GL_CALL(glViewport(0, 0, m_width/2, m_height));
 
         // 清除屏幕
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f); // 灰蓝色背景
@@ -178,18 +179,28 @@ namespace egl{
 
 
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D,texture11);
+        glBindTexture(GL_TEXTURE_2D,curLeftTex);
 
-
-
-        //}
         // 绑定 VAO 并绘制
         GL_CALL(glBindVertexArray(m_vao));
         GL_CALL(glDrawArrays(GL_TRIANGLES, 0, 6));
         GL_CALL(glBindVertexArray(0));
+
+
+        glViewport(m_width/2,0,m_width/2,m_height);
+        // 使用着色器程序
+        glUseProgram(m_program);
+
+        // 绑定 VAO 并绘制
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D,curRightTex);
+
+        glBindVertexArray(m_vao);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(0);
         //long long tempTime = nano_time1();
         // 交换缓冲区，显示到屏幕
-        //eglSwapBuffers(shareDisplay, m_surface[0].surface);
+        //eglSwapBuffers(m_display, m_surface[0].surface);
         GL_CALL(glFlush());
         //LOGE("FLUSH time-consuming:%lld",nano_time1() - tempTime );
 
@@ -197,17 +208,17 @@ namespace egl{
 
 
     PrimaryRenderer::~PrimaryRenderer() {
-        if (shareDisplay != EGL_NO_DISPLAY) {
-            eglMakeCurrent(shareDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+        if (m_display != EGL_NO_DISPLAY) {
+            eglMakeCurrent(m_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
             if (primaryContext != EGL_NO_CONTEXT) {
-                eglDestroyContext(shareDisplay, primaryContext);
+                eglDestroyContext(m_display, primaryContext);
             }
             if (m_surface != EGL_NO_SURFACE) {
-                eglDestroySurface(shareDisplay, m_surface);
+                eglDestroySurface(m_display, m_surface);
             }
-            eglTerminate(shareDisplay);
+            eglTerminate(m_display);
         }
-        shareDisplay = EGL_NO_DISPLAY;
+        m_display = EGL_NO_DISPLAY;
         primaryContext = EGL_NO_CONTEXT;
         m_surface = EGL_NO_SURFACE;
 
