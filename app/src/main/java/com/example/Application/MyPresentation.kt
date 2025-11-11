@@ -12,15 +12,17 @@ class MyPresentation (outerContext: Context, display: Display): Presentation(out
     private var secondHandle = NativeRenderer()
 
     override fun onCreate(savedInstanceState: Bundle?){
+
         super.onCreate(savedInstanceState)
 
         val surfaceView = SurfaceView(context)
+
         setContentView(surfaceView)
 
         surfaceView.holder.addCallback(object : SurfaceHolder.Callback{
 
             override fun surfaceCreated(holder: SurfaceHolder){
-                secondHandle.secondRender(holder.surface)
+                secondHandle.primaryRender(holder.surface)
             }
 
             override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int){
@@ -30,7 +32,12 @@ class MyPresentation (outerContext: Context, display: Display): Presentation(out
             override fun surfaceDestroyed(holder: SurfaceHolder){
 
             }
+
         })
 
     }
+
+
+
+
 }

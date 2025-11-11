@@ -14,6 +14,7 @@ object PluginBridge{
     // -----------------------------------------------------------------
     // (A) NDK C++ JNI 声明：将 Surface 传递给 C++
     // -----------------------------------------------------------------
+
 //    init {
 //        System.loadLibrary("native-lib")
 //    }
@@ -33,37 +34,42 @@ object PluginBridge{
                 Log.d("looking","startPresentation")
             }
         }
-        val surfaceView = SurfaceView(activity)
-        surfaceView.holder.addCallback(object :SurfaceHolder.Callback {
-            // --- SurfaceHolder.Callback 实现 ---
+        val displayManager = activity.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
+        if(displayManager.displays.count() == 1){
+            val surfaceView = SurfaceView(activity)
+            surfaceView.holder.addCallback(object :SurfaceHolder.Callback {
+                // --- SurfaceHolder.Callback 实现 ---
 
-            override fun surfaceCreated(holder: SurfaceHolder) {
-                primaryHandle.primaryRender(holder.surface)
-            }
+                override fun surfaceCreated(holder: SurfaceHolder) {
+                    primaryHandle.primaryRender(holder.surface)
+                }
 
-            override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
-                // 可以在这里处理窗口大小变化，但在这个例子中，C++ render() 会查询新的大小
-            }
+                override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+                    // 可以在这里处理窗口大小变化，但在这个例子中，C++ render() 会查询新的大小
+                }
 
-            override fun surfaceDestroyed(holder: SurfaceHolder) {
-            }
+                override fun surfaceDestroyed(holder: SurfaceHolder) {
+                }
 
 
-        })
-        // 把 SurfaceView 添加到 Activity 的界面上
-        activity.runOnUiThread {
-            activity.addContentView(
-                surfaceView,
-                FrameLayout.LayoutParams(
+            })
+
+            // 把 SurfaceView 添加到 Activity 的界面上
+            activity.runOnUiThread {
+                activity.addContentView(
+                    surfaceView,
+                    FrameLayout.LayoutParams(
 //                    FrameLayout.LayoutParams.MATCH_PARENT,
 //                    FrameLayout.LayoutParams.MATCH_PARENT
-                    1080,600
+                        1080,600
+                    )
                 )
-            )
+            }
         }
 
 
-        val displayManager = activity.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
+
+
         if(displayManager.displays.count()>1){
 
             val displays = displayManager.displays[1]
