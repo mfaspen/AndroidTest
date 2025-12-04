@@ -1,6 +1,7 @@
 package com.example.Application
 
 import android.view.Surface
+import com.example.Application.NativeRenderer.Companion.nAddUsbDevice
 import kotlin.concurrent.thread
 
 class NativeRenderer{
@@ -10,7 +11,11 @@ class NativeRenderer{
 
     private var secondRenderThread: Thread? = null
 
+    private var deviceThread: Thread? = null
+
     companion object {
+
+
         init {
             System.loadLibrary("SecondRendering") // 名称同 CMake 中生成的库
         }
@@ -22,6 +27,9 @@ class NativeRenderer{
         @JvmStatic
         private external fun secondInitialization(surface: Any): Long
 
+        @JvmStatic
+        private external fun nAddUsbDevice(deviceName: String?, fileDescriptor: Int)
+
 
     }
 
@@ -30,11 +38,11 @@ class NativeRenderer{
      */
     fun primaryRender(surface: Surface) {
         primaryRenderThread = thread {
-             primaryInitialization(surface)
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_DISPLAY)
+            primaryInitialization(surface)
         }
         primaryRenderThread = null
     }
-
 
     fun secondRender(surface: Surface) {
         secondRenderThread = thread {
@@ -43,4 +51,9 @@ class NativeRenderer{
         secondRenderThread = null
     }
 
+    fun addUsbDevice(deviceName: String?, fileDescriptor: Int) {
+        deviceThread = thread{
+            nAddUsbDevice(deviceName, fileDescriptor)
+        }
+    }
 }

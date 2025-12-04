@@ -26,16 +26,54 @@ project(SecondRendering)
 # used in the AndroidManifest.xml file.
 add_library(${PROJECT_NAME} SHARED
         # List C/C++ source files with relative paths to this CMakeLists.txt.
-        NaitveRender.cpp interface.cpp getSlam.cpp egl/GLRenderer.cpp egl/PrimaryRenderer.cpp egl/SecondaryRenderer.cpp)
+        NaitveRender.cpp interface.cpp getSlam.cpp egl/GLRenderer.cpp egl/PrimaryRenderer.cpp egl/SecondaryRenderer.cpp egl/slam.cpp)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../include/)
+include_directories(
+        ${CMAKE_CURRENT_SOURCE_DIR}/../include/
+)
 
 find_library( log-lib log )
 find_library( android-lib android )
 find_library( egl-lib EGL )
 find_library( gles-lib GLESv3 )
 
-target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(${PROJECT_NAME}
+        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/
+        ${CMAKE_CURRENT_SOURCE_DIR}/include2/
+)
+
+# 定义一个全局变量来存储所有导入的库
+set(ALL_IMPORTED_LIBS "" CACHE INTERNAL "List of all imported libraries")
+
+# 批量导入函数
+#function(import_prebuilt_libs lib_dir)
+#    file(GLOB lib_files "${lib_dir}/*.so")
+#
+#    foreach(lib_file ${lib_files})
+#        get_filename_component(lib_name ${lib_file} NAME_WE)
+#        string(REGEX REPLACE "^lib" "" lib_name ${lib_name})
+#
+#        message(STATUS "导入预编译库: ${lib_name} -> ${lib_file}")
+#
+#        add_library(${lib_name} SHARED IMPORTED)
+#        set_target_properties(${lib_name} PROPERTIES
+#            IMPORTED_LOCATION ${lib_file}
+#        )
+#
+#        # 将库名称添加到全局列表
+#        set(ALL_IMPORTED_LIBS ${ALL_IMPORTED_LIBS} ${lib_name} CACHE INTERNAL "List of all imported libraries")
+#    endforeach()
+#endfunction()
+
+# 使用函数导入所有库
+#import_prebuilt_libs(${CMAKE_CURRENT_SOURCE_DIR}/libs/${ANDROID_ABI})
+
+# 导入多个第三方库
+add_library(xv_sdk SHARED IMPORTED)
+set_target_properties(xv_sdk PROPERTIES
+    IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/../../../libs/${ANDROID_ABI}/libxslam-xv-sdk.so
+)
 
 # Specifies libraries CMake should link to your target library. You
 # can link libraries from various origins, such as libraries defined in this
@@ -45,4 +83,6 @@ target_link_libraries(${PROJECT_NAME}
         ${log-lib}
         ${android-lib}
         ${egl-lib}
-        ${gles-lib} )
+        ${gles-lib}
+        xv_sdk
+)

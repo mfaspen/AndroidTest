@@ -4,6 +4,9 @@
 #include "GLRenderer.h"
 #include "PrimaryRenderer.h"
 
+#include <pthread.h>
+#include <sched.h>
+
 namespace egl{
 
     PrimaryRenderer::PrimaryRenderer(){
@@ -14,11 +17,15 @@ namespace egl{
 
     void PrimaryRenderer::Rendering(){
 
+        struct sched_param param;
+        param.sched_priority = 99; // 最高优先级
+        pthread_setschedparam(pthread_self(), SCHED_FIFO, &param);
         SetupGL();
+
         while(true){
             update();
+            usleep(15900);
             draw();
-            usleep(16000);
         }
 
 

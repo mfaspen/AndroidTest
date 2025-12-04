@@ -22,7 +22,9 @@ android {
 //        }
 
         ndk {
-            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+            abiFilters += listOf("arm64-v8a"
+                //, "armeabi-v7a"
+            )
         }
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -57,6 +59,14 @@ android {
     buildFeatures {
         viewBinding = true
     }
+
+    sourceSets {
+        getByName("main") {
+            // 告诉 Gradle JNI 库的源码（.so 文件）在哪里
+            jniLibs.srcDir("libs")
+        }
+    }
+
 }
 
 configurations.all {
@@ -65,6 +75,7 @@ configurations.all {
         force("androidx.activity:activity-ktx:1.7.2")
     }
 }
+
 dependencies {
     compileOnly(files("libs/classes.jar")) // <--- 添加这行
     implementation("androidx.activity:activity:1.7.2")
@@ -77,6 +88,7 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 }
+
 //afterEvaluate {
 //    tasks.named("assembleRelease").configure {
 //        doLast {
@@ -103,9 +115,9 @@ tasks.register<Copy>("copyAar") {
     into("D:\\UNITY\\TESTShader\\Screen\\Assets\\Plugins\\Android")
 
     // 确保目标目录存在 (使用 File.mkdirs() 或 Kotlin 的 .mkdirs())
-//    doFirst {
-//        rootDir.resolve("artifacts").mkdirs()
-//    }
+    //    doFirst {
+    //        rootDir.resolve("artifacts").mkdirs()
+    //    }
 }
 
 // 确保 copyAar 任务在 assembleRelease 任务完成后运行

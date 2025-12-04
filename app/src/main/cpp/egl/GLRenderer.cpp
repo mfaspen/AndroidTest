@@ -7,7 +7,7 @@
 #include "PrimaryRenderer.h"
 #include "SecondaryRenderer.h"
 #include <vector>
-
+#include "slam.h"
 
 namespace egl{
 
@@ -127,15 +127,15 @@ void main() {
                 unity_context =ctx;
                 unityDisplay = eglGetCurrentDisplay();
             }
-            if(eglConfig == nullptr){
-                getConfig();
-            }
+//            if(eglConfig == nullptr){
+//                getConfig();
+//            }
 
         }else{
 
-            if(eglConfig == nullptr){
-                getConfig();
-            }
+//            if(eglConfig == nullptr){
+//                getConfig();
+//            }
             egl::unityImg[0] = egl::unityPara[0];
             egl::unityImg[1] = egl::unityPara[1];
 
@@ -219,11 +219,13 @@ void main() {
                 return false;
             }
         }
-        while (unity_context == EGL_NO_CONTEXT||eglConfig == nullptr){
+        while (unity_context == EGL_NO_CONTEXT
+        //||eglConfig == nullptr
+        ){
             usleep(16000);
         }
         // 4. 创建 EGL Surface
-        m_surface = eglCreateWindowSurface(m_display, eglConfig, m_window, surfaceAttribs);
+        m_surface = eglCreateWindowSurface(m_display, config, m_window, surfaceAttribs);
         if (m_surface == EGL_NO_SURFACE) {
             LOGE("eglCreateWindowSurface failed: %x", eglGetError());
             return false;
@@ -232,7 +234,7 @@ void main() {
         //if(m_context == EGL_NO_CONTEXT){
         // 5. 创建 EGL Context (请求 ES 3.0)
         EGLint ctxAttribs[] = {EGL_CONTEXT_CLIENT_VERSION, 3, EGL_NONE};
-        primaryContext = eglCreateContext(m_display, eglConfig, unity_context, ctxAttribs);
+        primaryContext = eglCreateContext(m_display, config, unity_context, ctxAttribs);
         if (primaryContext == EGL_NO_CONTEXT) {
             LOGE("eglCreateContext failed: %x", eglGetError());
             return false;
@@ -244,6 +246,8 @@ void main() {
             LOGE("eglMakeCurrent failed: %x", eglGetError());
             return false;
         }
+
+
         CreateTexture11();
 
         // 获取视口大小

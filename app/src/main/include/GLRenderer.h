@@ -35,8 +35,6 @@ namespace egl{
 
     void SetUnityPointer(int* uPara);
 
-
-
     extern const char* VERTEX_SHADER_SOURCE;
 
     extern const char* FRAGMENT_SHADER_SOURCE;

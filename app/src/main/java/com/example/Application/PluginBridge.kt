@@ -28,12 +28,27 @@ object PluginBridge{
     @JvmStatic
     fun startPresentation(activity: Activity){
 
+        Log.e("looking_usb","startPresentation")
         DeviceInit.init(activity)
-        DeviceInit.requestPermission { result ->
+        DeviceInit.requestPermission ({ result ->
             if (result.success) {
-                Log.d("looking","startPresentation")
+                Log.e("looking USB","result ${result.message}")
+                Log.e("looking","startPresentation")
+
+
+                DeviceInit.getFd(activity)
+
+
+
+
+
+
+
             }
-        }
+        },activity)
+
+
+
         val displayManager = activity.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
         if(displayManager.displays.count() == 1){
             val surfaceView = SurfaceView(activity)
@@ -49,6 +64,7 @@ object PluginBridge{
                 }
 
                 override fun surfaceDestroyed(holder: SurfaceHolder) {
+
                 }
 
 
@@ -79,6 +95,8 @@ object PluginBridge{
             activePresentation?.show()
 
         }
+
+
 
     }
 }
